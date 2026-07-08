@@ -87,7 +87,7 @@ static void Projectile_EmitTrail(cProjectile& projectile, float delta_time)
 	trail_desc.Height = length;
 	trail_desc.StartScale = projectile.TrailStartScale;
 	trail_desc.EndScale = projectile.TrailEndScale;
-	trail_desc.Rotation = std::atan2(behind_dir.x, behind_dir.y);
+	trail_desc.Rotation = std::atan2(move_dir.x, -move_dir.y);
 	trail_desc.LifeTime = projectile.TrailLifeTime;
 	trail_desc.TextureID = projectile.TrailTextureID != TEXTURE_INVALID_ID ?
 		projectile.TrailTextureID :
@@ -144,6 +144,7 @@ int ProjectileSystem_Fire(const cProjectileDesc& desc)
 	projectile.Radius = Projectile_ClampPositive(desc.Radius, 1.0f);
 	projectile.Width = Projectile_ClampPositive(desc.Width, projectile.Radius * 2.0f);
 	projectile.Height = Projectile_ClampPositive(desc.Height, projectile.Radius * 2.0f);
+	projectile.Rotation = desc.Rotation;
 	projectile.Damage = desc.Damage;
 	projectile.Age = 0.0f;
 	projectile.LifeTime = std::max(desc.LifeTime, 0.0f);
@@ -212,7 +213,9 @@ void ProjectileSystem_Draw()
 			projectile.Position.x,
 			projectile.Position.y,
 			projectile.Width,
-			projectile.Height);
+			projectile.Height,
+			projectile.Rotation,
+			{ 1.0f, 1.0f, 1.0f, 1.0f });
 	}
 }
 

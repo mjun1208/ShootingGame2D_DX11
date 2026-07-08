@@ -7,7 +7,10 @@
 #include "game_enemy.h"
 #include "game_player.h"
 #include "input_keyboard.h"
+#include "input_mouse.h"
 #include "sprite.h"
+
+static constexpr float PLAYER_FIRE_INTERVAL = 0.08f;
 
 bool IngameScene::Initialize()
 {
@@ -19,6 +22,7 @@ bool IngameScene::Initialize()
 	Game_Enemy_Initialize();
 	Game_Effect_Initialize();
 	CollisionSystem_Initialize();
+	m_FireCooldown = 0.0f;
 
 	return true;
 }
@@ -36,9 +40,14 @@ void IngameScene::Update(float delta_time)
 {
 	Game_Player_Update(delta_time);
 
-	if (InputKeyboard_IsRepeat(KK_SPACE, 0.15f, 0.08f))
+	m_FireCooldown -= delta_time;
+	const bool wants_fire =
+		InputKeyboard_IsPress(KK_SPACE) ||
+		InputMouse_IsPress(MOUSE_BUTTON_LEFT);
+	if (wants_fire && m_FireCooldown <= 0.0f)
 	{
-		Game_Bullet_Fire(Game_Player_GetBulletSpawnPosition());
+		Game_Bullet_Fire(Game_Player_GetBulletSpawnPosition(), Game_Player_GetAimDirection());
+		m_FireCooldown = PLAYER_FIRE_INTERVAL;
 	}
 
 	Game_Bullet_Update(delta_time);

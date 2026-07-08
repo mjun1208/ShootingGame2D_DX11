@@ -11,7 +11,7 @@ public:
 	static constexpr float RADIUS = 38.0f;
 
 	void Spawn(const DirectX::XMFLOAT2& position, float speed);
-	void Update(float delta_time);
+	void Update(float delta_time, const DirectX::XMFLOAT2& target_position);
 	void Draw(int texture_id, int dissolve_noise_texture_id) const;
 	void RegisterCollider(int owner_id) const;
 	void ApplyDamage(float damage);

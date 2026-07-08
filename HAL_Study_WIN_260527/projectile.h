@@ -15,6 +15,7 @@ struct cProjectileDesc
 	float Radius{ 8.0f };
 	float Width{ 16.0f };
 	float Height{ 16.0f };
+	float Rotation{ 0.0f };
 	float Damage{ 1.0f };
 	float LifeTime{ 0.0f };
 	int TextureID{ -1 };
@@ -41,6 +42,7 @@ struct cProjectile
 	float Radius{ 8.0f };
 	float Width{ 16.0f };
 	float Height{ 16.0f };
+	float Rotation{ 0.0f };
 	float Damage{ 1.0f };
 	float Age{ 0.0f };
 	float LifeTime{ 0.0f };

@@ -4,6 +4,8 @@
 #include "projectile.h"
 #include "texture.h"
 
+#include <cmath>
+
 static constexpr int PLAYER_OWNER_ID = 0;
 static constexpr float PLAYER_BULLET_WIDTH = 32.0f;
 static constexpr float PLAYER_BULLET_HEIGHT = 78.0f;
@@ -30,17 +32,34 @@ void Game_Bullet_Finalize()
 	g_BulletTextureID = TEXTURE_INVALID_ID;
 }
 
-void Game_Bullet_Fire(const DirectX::XMFLOAT2& spawn_position)
+void Game_Bullet_Fire(const DirectX::XMFLOAT2& spawn_position, const DirectX::XMFLOAT2& direction)
 {
+	const float direction_length_sq = direction.x * direction.x + direction.y * direction.y;
+	if (direction_length_sq <= 0.0001f)
+	{
+		return;
+	}
+
+	const float inv_direction_length = 1.0f / std::sqrt(direction_length_sq);
+	const DirectX::XMFLOAT2 normalized_direction = {
+		direction.x * inv_direction_length,
+		direction.y * inv_direction_length,
+	};
+
 	auto bullet_position = spawn_position;
-	bullet_position.y -= PLAYER_BULLET_HEIGHT / 2.0f;
+	bullet_position.x += normalized_direction.x * PLAYER_BULLET_HEIGHT * 0.5f;
+	bullet_position.y += normalized_direction.y * PLAYER_BULLET_HEIGHT * 0.5f;
 
 	cProjectileDesc desc{};
 	desc.Position = bullet_position;
-	desc.Velocity = { 0.0f, -PLAYER_BULLET_SPEED };
+	desc.Velocity = {
+		normalized_direction.x * PLAYER_BULLET_SPEED,
+		normalized_direction.y * PLAYER_BULLET_SPEED,
+	};
 	desc.Radius = PLAYER_BULLET_RADIUS;
 	desc.Width = PLAYER_BULLET_WIDTH;
 	desc.Height = PLAYER_BULLET_HEIGHT;
+	desc.Rotation = std::atan2(normalized_direction.x, -normalized_direction.y);
 	desc.Damage = PLAYER_BULLET_DAMAGE;
 	desc.TextureID = g_BulletTextureID;
 	desc.OwnerID = PLAYER_OWNER_ID;

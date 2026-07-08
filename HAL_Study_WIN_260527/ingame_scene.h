@@ -14,6 +14,7 @@ public:
 
 private:
 	cCamera m_Camera;
+	float m_FireCooldown{ 0.0f };
 };
 
 #endif // !INGAME_SCENE_H

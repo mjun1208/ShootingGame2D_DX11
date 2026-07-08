@@ -5,6 +5,8 @@
 #include "sprite.h"
 #include "texture.h"
 
+#include <cmath>
+
 void cEnemy::Spawn(const DirectX::XMFLOAT2& position, float speed)
 {
 	m_Position = position;
@@ -14,7 +16,7 @@ void cEnemy::Spawn(const DirectX::XMFLOAT2& position, float speed)
 	m_State = State::Alive;
 }
 
-void cEnemy::Update(float delta_time)
+void cEnemy::Update(float delta_time, const DirectX::XMFLOAT2& target_position)
 {
 	if (m_State == State::Inactive)
 	{
@@ -31,11 +33,14 @@ void cEnemy::Update(float delta_time)
 		return;
 	}
 
-	m_Position.y += m_Speed * delta_time;
-
-	if (m_Position.y - HEIGHT * 0.5f > static_cast<float>(SCREEN_HEIGHT))
+	const float to_target_x = target_position.x - m_Position.x;
+	const float to_target_y = target_position.y - m_Position.y;
+	const float distance_sq = to_target_x * to_target_x + to_target_y * to_target_y;
+	if (distance_sq > 0.0001f)
 	{
-		Deactivate();
+		const float inv_distance = 1.0f / std::sqrt(distance_sq);
+		m_Position.x += to_target_x * inv_distance * m_Speed * delta_time;
+		m_Position.y += to_target_y * inv_distance * m_Speed * delta_time;
 	}
 }
 

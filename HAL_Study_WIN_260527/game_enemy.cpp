@@ -4,12 +4,14 @@
 #include "config.h"
 #include "enemy.h"
 #include "game_effect.h"
+#include "game_player.h"
 #include "projectile.h"
 #include "texture.h"
 
 static constexpr int ENEMY_MAX = 128;
-static constexpr float ENEMY_SPAWN_INTERVAL = 0.75f;
-static constexpr float ENEMY_SPAWN_MARGIN_X = 80.0f;
+static constexpr float ENEMY_SPAWN_INTERVAL = 0.5f;
+static constexpr float ENEMY_SPAWN_EDGE_PADDING = 64.0f;
+static constexpr float ENEMY_SPAWN_OUTSIDE_OFFSET = 80.0f;
 static constexpr float ENEMY_BASE_SPEED = 120.0f;
 static constexpr float ENEMY_SPEED_STEP = 18.0f;
 
@@ -24,6 +26,12 @@ static bool Game_Enemy_IsValidID(int enemy_id)
 	return enemy_id >= 0 && enemy_id < ENEMY_MAX;
 }
 
+static float Game_Enemy_GetSpawnT(int spawn_count)
+{
+	const int lane_seed = (spawn_count * 157) % 1000;
+	return lane_seed / 999.0f;
+}
+
 static void Game_Enemy_Spawn()
 {
 	for (int i = 0; i < ENEMY_MAX; ++i)
@@ -33,14 +41,34 @@ static void Game_Enemy_Spawn()
 			continue;
 		}
 
-		const float spawn_width = static_cast<float>(SCREEN_WIDTH) - ENEMY_SPAWN_MARGIN_X * 2.0f;
-		const int lane_seed = (g_EnemySpawnCount * 157) % 1000;
-		const float lane_t = lane_seed / 999.0f;
-		const float x = ENEMY_SPAWN_MARGIN_X + spawn_width * lane_t;
-		const float y = -cEnemy::HEIGHT * 0.5f;
+		const float screen_width = static_cast<float>(SCREEN_WIDTH);
+		const float screen_height = static_cast<float>(SCREEN_HEIGHT);
+		const float side_t = Game_Enemy_GetSpawnT(g_EnemySpawnCount);
+		const float spawn_width = screen_width - ENEMY_SPAWN_EDGE_PADDING * 2.0f;
+		const float spawn_height = screen_height - ENEMY_SPAWN_EDGE_PADDING * 2.0f;
+		const float outside_x = cEnemy::WIDTH * 0.5f + ENEMY_SPAWN_OUTSIDE_OFFSET;
+		const float outside_y = cEnemy::HEIGHT * 0.5f + ENEMY_SPAWN_OUTSIDE_OFFSET;
+		DirectX::XMFLOAT2 spawn_position{};
+
+		switch (g_EnemySpawnCount % 4)
+		{
+		case 0:
+			spawn_position = { ENEMY_SPAWN_EDGE_PADDING + spawn_width * side_t, -outside_y };
+			break;
+		case 1:
+			spawn_position = { screen_width + outside_x, ENEMY_SPAWN_EDGE_PADDING + spawn_height * side_t };
+			break;
+		case 2:
+			spawn_position = { ENEMY_SPAWN_EDGE_PADDING + spawn_width * (1.0f - side_t), screen_height + outside_y };
+			break;
+		default:
+			spawn_position = { -outside_x, ENEMY_SPAWN_EDGE_PADDING + spawn_height * (1.0f - side_t) };
+			break;
+		}
+
 		const float speed = ENEMY_BASE_SPEED + static_cast<float>(g_EnemySpawnCount % 5) * ENEMY_SPEED_STEP;
 
-		g_Enemies[i].Spawn({ x, y }, speed);
+		g_Enemies[i].Spawn(spawn_position, speed);
 		++g_EnemySpawnCount;
 		break;
 	}
@@ -93,6 +121,8 @@ void Game_Enemy_Finalize()
 
 void Game_Enemy_Update(float delta_time)
 {
+	const DirectX::XMFLOAT2 player_position = Game_Player_GetPosition();
+
 	g_EnemySpawnTimer -= delta_time;
 	if (g_EnemySpawnTimer <= 0.0f)
 	{
@@ -102,7 +132,7 @@ void Game_Enemy_Update(float delta_time)
 
 	for (int i = 0; i < ENEMY_MAX; ++i)
 	{
-		g_Enemies[i].Update(delta_time);
+		g_Enemies[i].Update(delta_time, player_position);
 	}
 }
 
