@@ -11,6 +11,7 @@
 #include <cmath>
 
 #include <DirectXMath.h>
+#include "audio.h"
 using namespace DirectX;
 
 static int g_PlayerTextureID = TEXTURE_INVALID_ID;
@@ -25,11 +26,15 @@ static float g_PlayerHeight = 100.0f;
 static constexpr float PLAYER_BULLET_SPAWN_OFFSET = 72.0f;
 static constexpr float PLAYER_AIM_DEAD_ZONE_SQ = 16.0f;
 
+static int g_SoundId = 0;
+
 void Game_Player_Initialize()
 {
 	g_PlayerPos = { SCREEN_WIDTH / 2.0f , SCREEN_HEIGHT / 2.0f };
 	g_PlayerAimDirection = { 0.0f, -1.0f };
 	g_PlayerTextureID = Texture_Load(L"asset/texture/Logo.png");
+
+	g_SoundId = LoadAudio("asset/sound/test.wav");
 }
 
 void Game_Player_Finalize()
@@ -43,6 +48,7 @@ void Game_Player_Update(float delta_time)
 
 	if (InputKeyboard_IsPress(KK_W))
 	{
+		PlayAudio(g_SoundId);
 		move.y -= 1.0f;
 	}
 	if (InputKeyboard_IsPress(KK_UP))

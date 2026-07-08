@@ -11,6 +11,7 @@
 #include "input_xinput.h"
 
 #include "scene_manager.h"
+#include "audio.h"
 
 bool Application_Initialize(HWND hWnd)
 {
@@ -49,11 +50,14 @@ bool Application_Initialize(HWND hWnd)
 		return false;
 	}
 
+	InitAudio();
+
 	return true;
 }
 
 void Application_Finalize()
 {
+	ReleaseAudio();
 	SceneManager_Finalize();
 	Sprite_Finalize();
 	Texture_Finalize();
