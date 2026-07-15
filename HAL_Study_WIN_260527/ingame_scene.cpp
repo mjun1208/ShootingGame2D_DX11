@@ -9,11 +9,17 @@
 #include "input_keyboard.h"
 #include "input_mouse.h"
 #include "sprite.h"
+#include "sprite_instanced.h"
 
 static constexpr float PLAYER_FIRE_INTERVAL = 0.08f;
 
 bool IngameScene::Initialize()
 {
+	if (!SpriteInstanced_Initialize())
+	{
+		return false;
+	}
+
 	m_Camera.SetScreenSize((float)SCREEN_WIDTH, (float)SCREEN_HEIGHT);
 	m_Camera.SetPosition(SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f);
 
@@ -34,6 +40,7 @@ void IngameScene::Finalize()
 	Game_Enemy_Finalize();
 	Game_Bullet_Finalize();
 	Game_Player_Finalize();
+	SpriteInstanced_Finalize();
 }
 
 void IngameScene::Update(float delta_time)
@@ -66,9 +73,11 @@ void IngameScene::Draw()
 	Sprite_SetFilter(kPOINT);
 
 	Sprite_SetViewMatrix(m_Camera.GetViewMatrix());
+	SpriteInstanced_SetViewMatrix(m_Camera.GetViewMatrix());
 	Game_Player_Draw();
 	Game_Enemy_Draw();
 	Game_Bullet_Draw();
 	Game_Effect_Draw();
 	Sprite_ResetViewMatrix();
+	SpriteInstanced_SetViewMatrix(DirectX::XMMatrixIdentity());
 }

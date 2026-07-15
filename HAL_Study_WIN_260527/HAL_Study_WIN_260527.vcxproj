@@ -175,6 +175,7 @@
     <ClCompile Include="scene_manager.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="sprite.cpp" />
+    <ClCompile Include="sprite_instanced.cpp" />
     <ClCompile Include="system_timer.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="title_scene.cpp" />
@@ -211,6 +212,7 @@
     <ClInclude Include="shader.h" />
     <ClInclude Include="singleton.h" />
     <ClInclude Include="sprite.h" />
+    <ClInclude Include="sprite_instanced.h" />
     <ClInclude Include="system_timer.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="title_scene.h" />
@@ -233,6 +235,14 @@
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="shader_vertex_instanced_2d.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="shader_pixel_instanced_2d.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

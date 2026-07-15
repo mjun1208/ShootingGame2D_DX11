@@ -6,7 +6,10 @@
 #include "game_effect.h"
 #include "game_player.h"
 #include "projectile.h"
+#include "sprite_instanced.h"
 #include "texture.h"
+
+#include <vector>
 
 static constexpr int ENEMY_MAX = 128;
 static constexpr float ENEMY_SPAWN_INTERVAL = 0.5f;
@@ -138,10 +141,32 @@ void Game_Enemy_Update(float delta_time)
 
 void Game_Enemy_Draw()
 {
+	static std::vector<SpriteInstance> alive_instances;
+	if (alive_instances.capacity() < ENEMY_MAX)
+	{
+		alive_instances.reserve(ENEMY_MAX);
+	}
+	alive_instances.clear();
+
 	for (int i = 0; i < ENEMY_MAX; ++i)
 	{
-		g_Enemies[i].Draw(g_EnemyTextureID, g_DissolveNoiseTextureID);
+		if (g_Enemies[i].IsAlive())
+		{
+			alive_instances.push_back({
+				g_Enemies[i].GetPosition(),
+				{ cEnemy::WIDTH, cEnemy::HEIGHT },
+				0.0f,
+				{ 1.0f, 1.0f, 1.0f, 1.0f },
+			});
+		}
+		else if (g_Enemies[i].IsActive())
+		{
+			g_Enemies[i].Draw(g_EnemyTextureID, g_DissolveNoiseTextureID);
+		}
 	}
+
+	SpriteInstanced_Draw(
+		g_EnemyTextureID, alive_instances.data(), static_cast<int>(alive_instances.size()));
 }
 
 void Game_Enemy_RegisterColliders()

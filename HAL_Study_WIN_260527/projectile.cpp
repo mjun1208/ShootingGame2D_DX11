@@ -2,11 +2,14 @@
 
 #include "config.h"
 #include "sprite.h"
+#include "sprite_instanced.h"
 #include "texture.h"
 #include "trail.h"
 
 #include <algorithm>
 #include <cmath>
+#include <unordered_map>
+#include <vector>
 
 static constexpr float PROJECTILE_REMOVE_MARGIN = 256.0f;
 
@@ -199,6 +202,11 @@ void ProjectileSystem_Update(float delta_time)
 void ProjectileSystem_Draw()
 {
 	TrailSystem_Draw();
+	static std::unordered_map<int, std::vector<SpriteInstance>> batches;
+	for (auto& batch : batches)
+	{
+		batch.second.clear();
+	}
 
 	for (int i = 0; i < g_ActiveCount; ++i)
 	{
@@ -208,14 +216,20 @@ void ProjectileSystem_Draw()
 			continue;
 		}
 
-		Sprite_Draw(
-			projectile.TextureID,
-			projectile.Position.x,
-			projectile.Position.y,
-			projectile.Width,
-			projectile.Height,
+		batches[projectile.TextureID].push_back({
+			projectile.Position,
+			{ projectile.Width, projectile.Height },
 			projectile.Rotation,
-			{ 1.0f, 1.0f, 1.0f, 1.0f });
+			{ 1.0f, 1.0f, 1.0f, 1.0f },
+		});
+	}
+
+	for (const auto& [texture_id, instances] : batches)
+	{
+		if (!instances.empty())
+		{
+			SpriteInstanced_Draw(texture_id, instances.data(), static_cast<int>(instances.size()));
+		}
 	}
 }
 

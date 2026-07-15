@@ -1,9 +1,12 @@
 #include "trail.h"
 
 #include "sprite.h"
+#include "sprite_instanced.h"
 #include "texture.h"
 
 #include <algorithm>
+#include <unordered_map>
+#include <vector>
 
 static cTrailParticle g_TrailParticles[TRAIL_MAX];
 static int g_ActiveTrails[TRAIL_MAX];
@@ -109,6 +112,12 @@ void TrailSystem_Update(float delta_time)
 
 void TrailSystem_Draw()
 {
+	static std::unordered_map<int, std::vector<SpriteInstance>> batches;
+	for (auto& batch : batches)
+	{
+		batch.second.clear();
+	}
+
 	for (int i = 0; i < g_ActiveCount; ++i)
 	{
 		const cTrailParticle& trail = g_TrailParticles[g_ActiveTrails[i]];
@@ -122,14 +131,20 @@ void TrailSystem_Draw()
 			continue;
 		}
 
-		Sprite_Draw(
-			trail.TextureID,
-			trail.Position.x,
-			trail.Position.y,
-			trail.Width * scale,
-			trail.Height * scale,
+		batches[trail.TextureID].push_back({
+			trail.Position,
+			{ trail.Width * scale, trail.Height * scale },
 			trail.Rotation,
-			color);
+			color,
+		});
+	}
+
+	for (const auto& [texture_id, instances] : batches)
+	{
+		if (!instances.empty())
+		{
+			SpriteInstanced_Draw(texture_id, instances.data(), static_cast<int>(instances.size()));
+		}
 	}
 }
 
