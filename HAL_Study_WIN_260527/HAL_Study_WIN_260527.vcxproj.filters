@@ -28,6 +28,12 @@
     <Filter Include="소스 파일\Game">
       <UniqueIdentifier>{3466a964-2598-4899-b87b-ecc546f0303b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Scene">
+      <UniqueIdentifier>{5d046264-a1b2-44cc-9639-bbd0b6131d11}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Scene">
+      <UniqueIdentifier>{db70422e-6309-46d0-a893-5d02f060ce0c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -49,6 +55,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="sprite.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="sprite_instanced.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="application.cpp">
@@ -111,17 +120,17 @@
     <ClCompile Include="scene_manager.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
-    <ClCompile Include="title_scene.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-    <ClCompile Include="ingame_scene.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
     <ClCompile Include="trail.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
     <ClCompile Include="Audio.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="title_scene.cpp">
+      <Filter>소스 파일\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="ingame_scene.cpp">
+      <Filter>소스 파일\Scene</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -147,6 +156,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="sprite.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="sprite_instanced.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="application.h">
@@ -215,17 +227,17 @@
     <ClInclude Include="scene_manager.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
-    <ClInclude Include="title_scene.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
-    <ClInclude Include="ingame_scene.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
     <ClInclude Include="trail.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
     <ClInclude Include="Audio.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="title_scene.h">
+      <Filter>헤더 파일\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="ingame_scene.h">
+      <Filter>헤더 파일\Scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -233,6 +245,12 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="shader_pixel_2d.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="shader_vertex_instanced_2d.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="shader_pixel_instanced_2d.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

@@ -5,8 +5,6 @@
 
 #include <utility>
 
-static cSceneManager g_SceneManager;
-
 bool cSceneManager::Initialize(SceneID start_scene_id)
 {
 	Finalize();
@@ -115,35 +113,35 @@ void cSceneManager::ApplyPendingSceneChange()
 
 bool SceneManager_Initialize(SceneID start_scene_id)
 {
-	return g_SceneManager.Initialize(start_scene_id);
+	return cSceneManager::GetInstance().Initialize(start_scene_id);
 }
 
 void SceneManager_Finalize()
 {
-	g_SceneManager.Finalize();
+	cSceneManager::GetInstance().Finalize();
 }
 
 void SceneManager_Update(float delta_time)
 {
-	g_SceneManager.Update(delta_time);
+	cSceneManager::GetInstance().Update(delta_time);
 }
 
 void SceneManager_FixedUpdate()
 {
-	g_SceneManager.FixedUpdate();
+	cSceneManager::GetInstance().FixedUpdate();
 }
 
 void SceneManager_Draw()
 {
-	g_SceneManager.Draw();
+	cSceneManager::GetInstance().Draw();
 }
 
 void SceneManager_ChangeScene(SceneID scene_id)
 {
-	g_SceneManager.ChangeScene(scene_id);
+	cSceneManager::GetInstance().ChangeScene(scene_id);
 }
 
 SceneID SceneManager_GetCurrentSceneID()
 {
-	return g_SceneManager.GetCurrentSceneID();
+	return cSceneManager::GetInstance().GetCurrentSceneID();
 }

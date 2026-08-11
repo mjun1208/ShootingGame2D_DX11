@@ -2,6 +2,7 @@
 #define SCENE_MANAGER_H
 
 #include "scene.h"
+#include "singleton.h"
 
 #include <memory>
 
@@ -11,8 +12,10 @@ enum class SceneID
 	Ingame,
 };
 
-class cSceneManager
+class cSceneManager : public cSingleton<cSceneManager>
 {
+	friend class cSingleton<cSceneManager>;
+
 public:
 	bool Initialize(SceneID start_scene_id = SceneID::Title);
 	void Finalize();
@@ -24,6 +27,9 @@ public:
 	SceneID GetCurrentSceneID() const;
 
 private:
+	cSceneManager() = default;
+	~cSceneManager() = default;
+
 	std::unique_ptr<cScene> CreateScene(SceneID scene_id);
 	bool ApplySceneChange(SceneID scene_id);
 	void ApplyPendingSceneChange();

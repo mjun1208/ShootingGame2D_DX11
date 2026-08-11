@@ -51,15 +51,7 @@ void Game_Player_Update(float delta_time)
 		PlayAudio(g_SoundId);
 		move.y -= 1.0f;
 	}
-	if (InputKeyboard_IsPress(KK_UP))
-	{
-		move.y -= 1.0f;
-	}
 	if (InputKeyboard_IsPress(KK_S))
-	{
-		move.y += 1.0f;
-	}
-	if (InputKeyboard_IsPress(KK_DOWN))
 	{
 		move.y += 1.0f;
 	}
@@ -67,15 +59,7 @@ void Game_Player_Update(float delta_time)
 	{
 		move.x -= 1.0f;
 	}
-	if (InputKeyboard_IsPress(KK_LEFT))
-	{
-		move.x -= 1.0f;
-	}
 	if (InputKeyboard_IsPress(KK_D))
-	{
-		move.x += 1.0f;
-	}
-	if (InputKeyboard_IsPress(KK_RIGHT))
 	{
 		move.x += 1.0f;
 	}
