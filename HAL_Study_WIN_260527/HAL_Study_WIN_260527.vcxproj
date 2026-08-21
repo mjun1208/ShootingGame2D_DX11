@@ -151,8 +151,14 @@
   <ItemGroup>
     <ClCompile Include="application.cpp" />
     <ClCompile Include="Audio.cpp" />
+	<ClCompile Include="blood.cpp" />
+    <ClCompile Include="button.cpp" />
     <ClCompile Include="bullet.cpp" />
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="chain_lightning.cpp" />
+	<ClCompile Include="chest.cpp" />
+	<ClCompile Include="round_portal.cpp" />
+    <ClCompile Include="clear_scene.cpp" />
     <ClCompile Include="collision.cpp" />
     <ClCompile Include="debug_text.cpp" />
     <ClCompile Include="direct3d.cpp" />
@@ -160,8 +166,12 @@
     <ClCompile Include="enemy.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="game_bullet.cpp" />
+    <ClCompile Include="game_damage_text.cpp" />
     <ClCompile Include="game_effect.cpp" />
     <ClCompile Include="game_enemy.cpp" />
+	<ClCompile Include="monster_data.cpp" />
+	<ClCompile Include="game_experience_gem.cpp" />
+	<ClCompile Include="game_over_scene.cpp" />
     <ClCompile Include="game_player.cpp" />
     <ClCompile Include="input_keyboard.cpp" />
     <ClCompile Include="input_mouse.cpp" />
@@ -170,14 +180,17 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mouse.cpp" />
     <ClCompile Include="polygon.cpp" />
+    <ClCompile Include="procedural_map.cpp" />
     <ClCompile Include="projectile.cpp" />
     <ClCompile Include="ingame_scene.cpp" />
     <ClCompile Include="scene_manager.cpp" />
     <ClCompile Include="shader.cpp" />
+	<ClCompile Include="slime_goo.cpp" />
     <ClCompile Include="sprite.cpp" />
     <ClCompile Include="sprite_instanced.cpp" />
     <ClCompile Include="system_timer.cpp" />
     <ClCompile Include="texture.cpp" />
+    <ClCompile Include="time_stop_effect.cpp" />
     <ClCompile Include="title_scene.cpp" />
     <ClCompile Include="trail.cpp" />
     <ClCompile Include="WICTextureLoader11.cpp" />
@@ -185,8 +198,14 @@
   <ItemGroup>
     <ClInclude Include="application.h" />
     <ClInclude Include="Audio.h" />
+	<ClInclude Include="blood.h" />
+    <ClInclude Include="button.h" />
     <ClInclude Include="bullet.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="chain_lightning.h" />
+	<ClInclude Include="chest.h" />
+	<ClInclude Include="round_portal.h" />
+    <ClInclude Include="clear_scene.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="debug_ostream.h" />
@@ -196,25 +215,33 @@
     <ClInclude Include="enemy.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="game_bullet.h" />
+    <ClInclude Include="game_damage_text.h" />
     <ClInclude Include="game_effect.h" />
     <ClInclude Include="game_enemy.h" />
+	<ClInclude Include="monster_data.h" />
+	<ClInclude Include="game_experience_gem.h" />
+	<ClInclude Include="game_over_scene.h" />
     <ClInclude Include="game_player.h" />
     <ClInclude Include="input_keyboard.h" />
     <ClInclude Include="input_mouse.h" />
     <ClInclude Include="input_xinput.h" />
+	<ClInclude Include="interactable.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="mouse.h" />
     <ClInclude Include="polygon.h" />
+    <ClInclude Include="procedural_map.h" />
     <ClInclude Include="projectile.h" />
     <ClInclude Include="ingame_scene.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="scene_manager.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="singleton.h" />
+	<ClInclude Include="slime_goo.h" />
     <ClInclude Include="sprite.h" />
     <ClInclude Include="sprite_instanced.h" />
     <ClInclude Include="system_timer.h" />
     <ClInclude Include="texture.h" />
+    <ClInclude Include="time_stop_effect.h" />
     <ClInclude Include="title_scene.h" />
     <ClInclude Include="trail.h" />
     <ClInclude Include="WICTextureLoader11.h" />
@@ -241,6 +268,18 @@
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="shader_pixel_instanced_2d.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="shader_pixel_lightning.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="shader_vertex_time_stop.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="shader_pixel_time_stop.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>

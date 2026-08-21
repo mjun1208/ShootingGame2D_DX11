@@ -85,7 +85,6 @@ void Application_FixedUpdate()
 void Application_Draw()
 {
 	// Direct3D_DrawBegin();
-	InputMouse_SetVisible(true);
 	SceneManager_Draw();
 	// Direct3D_Present();
 }

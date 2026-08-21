@@ -33,9 +33,11 @@ static int                gLastY = 0;
 static int                gRelativeX = INT32_MAX;
 static int                gRelativeY = INT32_MAX;
 static bool               gInFocus = true;
+static bool               gVisibleRequested = true;
 
 
 static void clipToWindow(void);
+static void setCursorVisibility(bool visible);
 
 
 void Mouse_Initialize(HWND window)
@@ -65,6 +67,7 @@ void Mouse_Initialize(HWND window)
     gRelativeY = INT32_MAX;
 
     gInFocus = true;
+    gVisibleRequested = true;
 }
 
 void Mouse_Finalize(void)
@@ -144,10 +147,21 @@ bool Mouse_IsVisible(void)
 
 void Mouse_SetVisible(bool visible)
 {
+    gVisibleRequested = visible;
+
     if (gMode == MOUSE_POSITION_MODE_RELATIVE) {
         return;
     }
 
+    if (!gInFocus) {
+        return;
+    }
+
+    setCursorVisibility(visible);
+}
+
+static void setCursorVisibility(bool visible)
+{
     CURSORINFO info = { sizeof(CURSORINFO), 0, nullptr, {} };
     GetCursorInfo(&info);
 
@@ -226,12 +240,16 @@ void Mouse_ProcessMessage(UINT message, WPARAM wParam, LPARAM lParam)
                 ShowCursor(FALSE);
                 clipToWindow();
             }
+            else {
+                setCursorVisibility(gVisibleRequested);
+            }
         }
         else {
             int scrollWheel = gState.scrollWheelValue;
             memset(&gState, 0, sizeof(gState));
             gState.scrollWheelValue = scrollWheel;
             gInFocus = false;
+            setCursorVisibility(true);
         }
         return;
 

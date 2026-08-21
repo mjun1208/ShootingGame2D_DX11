@@ -34,6 +34,12 @@
     <Filter Include="헤더 파일\Scene">
       <UniqueIdentifier>{db70422e-6309-46d0-a893-5d02f060ce0c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\UI">
+      <UniqueIdentifier>{19c9a8ba-55b9-4a51-926f-85cc2e05e0a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\UI">
+      <UniqueIdentifier>{d35ad93a-2c39-4e2f-a762-f54776684f84}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -47,6 +53,9 @@
     </ClCompile>
     <ClCompile Include="polygon.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="procedural_map.cpp">
+      <Filter>소스 파일\Game</Filter>
     </ClCompile>
     <ClCompile Include="WICTextureLoader11.cpp">
       <Filter>소스 파일</Filter>
@@ -96,6 +105,9 @@
     <ClCompile Include="game_bullet.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
+    <ClCompile Include="game_damage_text.cpp">
+      <Filter>소스 파일\Game</Filter>
+    </ClCompile>
     <ClCompile Include="enemy.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
@@ -108,9 +120,27 @@
     <ClCompile Include="game_enemy.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
+	<ClCompile Include="monster_data.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="game_experience_gem.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="game_over_scene.cpp">
+	  <Filter>소스 파일\Scene</Filter>
+	</ClCompile>
     <ClCompile Include="camera.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
+    <ClCompile Include="chain_lightning.cpp">
+      <Filter>소스 파일\Game</Filter>
+    </ClCompile>
+	<ClCompile Include="chest.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="round_portal.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
     <ClCompile Include="collision.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
@@ -126,11 +156,26 @@
     <ClCompile Include="Audio.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+	<ClCompile Include="blood.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="slime_goo.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
     <ClCompile Include="title_scene.cpp">
       <Filter>소스 파일\Scene</Filter>
     </ClCompile>
     <ClCompile Include="ingame_scene.cpp">
       <Filter>소스 파일\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="clear_scene.cpp">
+      <Filter>소스 파일\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="button.cpp">
+      <Filter>소스 파일\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="time_stop_effect.cpp">
+      <Filter>소스 파일\Game</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -148,6 +193,9 @@
     </ClInclude>
     <ClInclude Include="polygon.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="procedural_map.h">
+      <Filter>헤더 파일\Game</Filter>
     </ClInclude>
     <ClInclude Include="WICTextureLoader11.h">
       <Filter>헤더 파일</Filter>
@@ -182,6 +230,9 @@
     <ClInclude Include="input_xinput.h">
       <Filter>헤더 파일\Input</Filter>
     </ClInclude>
+	<ClInclude Include="interactable.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
     <ClInclude Include="keyboard.h">
       <Filter>헤더 파일\Input</Filter>
     </ClInclude>
@@ -197,6 +248,9 @@
     <ClInclude Include="game_bullet.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
+    <ClInclude Include="game_damage_text.h">
+      <Filter>헤더 파일\Game</Filter>
+    </ClInclude>
     <ClInclude Include="enemy.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
@@ -209,9 +263,27 @@
     <ClInclude Include="game_enemy.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
+	<ClInclude Include="monster_data.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="game_experience_gem.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="game_over_scene.h">
+	  <Filter>헤더 파일\Scene</Filter>
+	</ClInclude>
     <ClInclude Include="camera.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
+    <ClInclude Include="chain_lightning.h">
+      <Filter>헤더 파일\Game</Filter>
+    </ClInclude>
+	<ClInclude Include="chest.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="round_portal.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
     <ClInclude Include="collision.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
@@ -233,11 +305,26 @@
     <ClInclude Include="Audio.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+	<ClInclude Include="blood.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="slime_goo.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
     <ClInclude Include="title_scene.h">
       <Filter>헤더 파일\Scene</Filter>
     </ClInclude>
     <ClInclude Include="ingame_scene.h">
       <Filter>헤더 파일\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="clear_scene.h">
+      <Filter>헤더 파일\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="button.h">
+      <Filter>헤더 파일\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="time_stop_effect.h">
+      <Filter>헤더 파일\Game</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -251,6 +338,15 @@
       <Filter>Shader</Filter>
     </FxCompile>
     <FxCompile Include="shader_pixel_instanced_2d.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="shader_pixel_lightning.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="shader_vertex_time_stop.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="shader_pixel_time_stop.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
   </ItemGroup>

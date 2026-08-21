@@ -10,6 +10,8 @@ enum class SceneID
 {
 	Title,
 	Ingame,
+	GameOver,
+	Clear,
 };
 
 class cSceneManager : public cSingleton<cSceneManager>
@@ -24,6 +26,7 @@ public:
 	void Draw();
 
 	void ChangeScene(SceneID scene_id);
+	void ShowClearScene(float clear_time_seconds);
 	SceneID GetCurrentSceneID() const;
 
 private:
@@ -37,6 +40,7 @@ private:
 	std::unique_ptr<cScene> m_CurrentScene;
 	SceneID m_CurrentSceneID{ SceneID::Title };
 	SceneID m_NextSceneID{ SceneID::Title };
+	float m_LastClearTimeSeconds{ 0.0f };
 	bool m_HasNextScene{ false };
 };
 
@@ -46,6 +50,7 @@ void SceneManager_Update(float delta_time);
 void SceneManager_FixedUpdate();
 void SceneManager_Draw();
 void SceneManager_ChangeScene(SceneID scene_id);
+void SceneManager_ShowClearScene(float clear_time_seconds);
 SceneID SceneManager_GetCurrentSceneID();
 
 #endif // !SCENE_MANAGER_H
