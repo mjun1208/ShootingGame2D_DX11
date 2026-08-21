@@ -17,7 +17,14 @@ SamplerState major_sampler : register(s0);
 
 float4 main(PS_IN ps_in) : SV_TARGET
 {
-    float4 texture_color = major_texture.Sample(major_sampler, ps_in.uv) * color;
+	const float4 sampled_color = major_texture.Sample(major_sampler, ps_in.uv);
+	float4 texture_color = sampled_color * color;
+	if (dissolve.w > 0.5f)
+	{
+		// VFX mask mode: preserve the source alpha shape while recoloring the
+		// sprite to an exact emissive hue instead of multiplying its RGB.
+		texture_color = float4(color.rgb, sampled_color.a * color.a);
+	}
     if (texture_color.a <= 0.001f)
     {
         discard;

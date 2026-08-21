@@ -7,6 +7,7 @@
 using namespace DirectX;
 
 static constexpr float CAMERA_MIN_ZOOM = 0.0001f;
+static constexpr float CAMERA_SHAKE_SAMPLE_INTERVAL = 1.0f / 30.0f;
 
 cCamera::cCamera()
 	: cCamera(static_cast<float>(SCREEN_WIDTH), static_cast<float>(SCREEN_HEIGHT))
@@ -75,9 +76,108 @@ float cCamera::GetRotation() const
 	return m_Rotation;
 }
 
+void cCamera::Update(float delta_time)
+{
+	if (m_ShakeRemaining <= 0.0f)
+	{
+		return;
+	}
+
+	delta_time = std::max(delta_time, 0.0f);
+	m_ShakeRemaining = std::max(m_ShakeRemaining - delta_time, 0.0f);
+	if (m_ShakeRemaining <= 0.0f)
+	{
+		StopShake();
+		return;
+	}
+
+	m_ShakeSampleElapsed += delta_time;
+	while (m_ShakeSampleElapsed >= CAMERA_SHAKE_SAMPLE_INTERVAL)
+	{
+		m_ShakeSampleElapsed -= CAMERA_SHAKE_SAMPLE_INTERVAL;
+		m_ShakeNoiseFrom = m_ShakeNoiseTo;
+		m_ShakeNoiseTo = NextShakeNoise2D();
+	}
+
+	const float sample_ratio = std::clamp(
+		m_ShakeSampleElapsed / CAMERA_SHAKE_SAMPLE_INTERVAL, 0.0f, 1.0f);
+	const float smooth_ratio = sample_ratio * sample_ratio * (3.0f - 2.0f * sample_ratio);
+	const float strength = m_ShakeNoiseSize * (m_ShakeRemaining / m_ShakeDuration);
+	m_ShakeOffset = {
+		(m_ShakeNoiseFrom.x + (m_ShakeNoiseTo.x - m_ShakeNoiseFrom.x) * smooth_ratio) * strength,
+		(m_ShakeNoiseFrom.y + (m_ShakeNoiseTo.y - m_ShakeNoiseFrom.y) * smooth_ratio) * strength,
+	};
+}
+
+void cCamera::Shake(float noise_size, float duration)
+{
+	noise_size = std::max(noise_size, 0.0f);
+	duration = std::max(duration, 0.0f);
+	if (noise_size <= 0.0f || duration <= 0.0f)
+	{
+		return;
+	}
+
+	const bool was_shaking = m_ShakeRemaining > 0.0f;
+	// Preserve a stronger shake already in progress while allowing repeated
+	// impacts to extend it without producing an abrupt drop in intensity.
+	const float current_strength = m_ShakeDuration > 0.0f
+		? m_ShakeNoiseSize * (m_ShakeRemaining / m_ShakeDuration)
+		: 0.0f;
+	m_ShakeNoiseSize = std::max(current_strength, noise_size);
+	m_ShakeDuration = std::max(m_ShakeRemaining, duration);
+	m_ShakeRemaining = m_ShakeDuration;
+
+	if (!was_shaking)
+	{
+		m_ShakeSampleElapsed = 0.0f;
+		m_ShakeNoiseFrom = NextShakeNoise2D();
+		m_ShakeNoiseTo = NextShakeNoise2D();
+		m_ShakeOffset = {
+			m_ShakeNoiseFrom.x * m_ShakeNoiseSize,
+			m_ShakeNoiseFrom.y * m_ShakeNoiseSize,
+		};
+	}
+	else if (current_strength > 0.0f)
+	{
+		const float strength_ratio = m_ShakeNoiseSize / current_strength;
+		m_ShakeOffset.x *= strength_ratio;
+		m_ShakeOffset.y *= strength_ratio;
+	}
+}
+
+void cCamera::StopShake()
+{
+	m_ShakeOffset = { 0.0f, 0.0f };
+	m_ShakeNoiseFrom = { 0.0f, 0.0f };
+	m_ShakeNoiseTo = { 0.0f, 0.0f };
+	m_ShakeNoiseSize = 0.0f;
+	m_ShakeDuration = 0.0f;
+	m_ShakeRemaining = 0.0f;
+	m_ShakeSampleElapsed = 0.0f;
+}
+
+float cCamera::NextShakeNoise()
+{
+	// Xorshift32 keeps camera shake deterministic and avoids a heavyweight RNG.
+	m_ShakeRandomState ^= m_ShakeRandomState << 13;
+	m_ShakeRandomState ^= m_ShakeRandomState >> 17;
+	m_ShakeRandomState ^= m_ShakeRandomState << 5;
+	return static_cast<float>(m_ShakeRandomState & 0x00FFFFFFu) /
+		(static_cast<float>(0x00FFFFFFu) * 0.5f) - 1.0f;
+}
+
+XMFLOAT2 cCamera::NextShakeNoise2D()
+{
+	return { NextShakeNoise(), NextShakeNoise() };
+}
+
 XMMATRIX cCamera::GetViewMatrix() const
 {
-	const XMMATRIX translation = XMMatrixTranslation(-m_Position.x, -m_Position.y, 0.0f);
+	const XMMATRIX translation = XMMatrixTranslation(
+		-(m_Position.x + m_ShakeOffset.x),
+		-(m_Position.y + m_ShakeOffset.y),
+		0.0f);
 	const XMMATRIX rotation = XMMatrixRotationZ(-m_Rotation);
 	const XMMATRIX scaling = XMMatrixScaling(m_Zoom, m_Zoom, 1.0f);
 	const XMMATRIX screen_center = XMMatrixTranslation(m_ScreenSize.x / 2.0f, m_ScreenSize.y / 2.0f, 0.0f);

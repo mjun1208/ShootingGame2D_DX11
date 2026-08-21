@@ -16,17 +16,22 @@ void Sprite_SetFilter(SpriteFilter filter);
 void Sprite_SetViewMatrix(const DirectX::XMMATRIX& view_matrix);
 void Sprite_ResetViewMatrix();
 
-void Sprite_Draw(int texture_Id, float pos_X, float pos_Y);
-void Sprite_Draw(int texture_Id, const DirectX::XMFLOAT2& pos);
-void Sprite_Draw(int texture_Id, float pos_X, float pos_Y, float width, float height);
 void Sprite_Draw(
+	int texture_Id,
+	float pos_X,
+	float pos_Y,
+	float rotation_radian = 0.0f,
+	float scale = 1.0f);
+
+void Sprite_DrawSized(int texture_Id, float pos_X, float pos_Y, float width, float height);
+void Sprite_DrawSized(
 	int texture_Id,
 	float pos_X,
 	float pos_Y,
 	float width,
 	float height,
 	const DirectX::XMFLOAT4& color);
-void Sprite_Draw(
+void Sprite_DrawSized(
 	int texture_Id,
 	float pos_X,
 	float pos_Y,
@@ -44,7 +49,7 @@ void Sprite_DrawDissolve(
 	float dissolve_amount,
 	float edge_width,
 	const DirectX::XMFLOAT4& edge_color);
-void Sprite_Draw(
+void Sprite_DrawRegion(
 	int texture_Id,
 	float pos_X,
 	float pos_Y,
@@ -55,6 +60,19 @@ void Sprite_Draw(
 	int texture_Width,
 	int texture_Height,
 	const DirectX::XMFLOAT4& color);
-void Sprite_Draw(int texture_Id, float pos_X, float pos_Y, int texture_X, int texture_Y, int texture_Width, int texture_Height);
+void Sprite_DrawRegionRotated(
+	int texture_Id,
+	float pos_X,
+	float pos_Y,
+	float width,
+	float height,
+	float rotation_radian,
+	int texture_X,
+	int texture_Y,
+	int texture_Width,
+	int texture_Height,
+	const DirectX::XMFLOAT4& color,
+	bool additive = false,
+	bool alpha_mask = false);
 
 #endif // !SPRITE_H

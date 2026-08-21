@@ -43,7 +43,7 @@ bool Polygon_Initialize()
     }
 
     D3D11_SAMPLER_DESC sd{};
-    sd.Filter = D3D11_FILTER_ANISOTROPIC; // フィル?リング設定 (MIPMAPリニア)
+    sd.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT; // フィル?リング設定 (MIPMAPリニア)
     sd.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP; // 範囲外の扱い (横方向：クランプ)
     sd.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP; // 範囲外の扱い (縦方向：クランプ)
     sd.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP; // 範囲外の扱い (奥行方向：クランプ)

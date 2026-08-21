@@ -6,6 +6,7 @@
 #include "texture.h"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <fstream>
 #include <vector>
@@ -28,17 +29,34 @@ namespace
 		XMFLOAT4X4 ViewProjection;
 	};
 
+	struct LightConstants
+	{
+		XMFLOAT4 RadialLight{ 0.0f, 0.0f, 1.0f, 0.0f };
+		XMFLOAT4 LightLevels{ 1.0f, 1.0f, 1.0f, 0.0f };
+		XMFLOAT4 LightColor{ 1.0f, 1.0f, 1.0f, 0.0f };
+		XMFLOAT4 DirectLight{ 1.0f, 1.0f, 1.0f, 0.0f };
+		XMFLOAT4 PointLightMeta{ 0.0f, 0.0f, 0.0f, 0.0f };
+		std::array<XMFLOAT4, SPRITE_INSTANCED_POINT_LIGHT_CAPACITY> PointLights{};
+		std::array<XMFLOAT4, SPRITE_INSTANCED_POINT_LIGHT_CAPACITY> PointLightColors{};
+	};
+
 	ID3D11Buffer* g_VertexBuffer = nullptr;
 	ID3D11Buffer* g_InstanceBuffer = nullptr;
 	ID3D11Buffer* g_SceneConstantBuffer = nullptr;
+	ID3D11Buffer* g_LightConstantBuffer = nullptr;
 	ID3D11VertexShader* g_VertexShader = nullptr;
 	ID3D11PixelShader* g_PixelShader = nullptr;
+	ID3D11PixelShader* g_LightningPixelShader = nullptr;
 	ID3D11InputLayout* g_InputLayout = nullptr;
 	ID3D11SamplerState* g_SamplerState = nullptr;
+	ID3D11SamplerState* g_LightningSamplerState = nullptr;
 	ID3D11BlendState* g_BlendState = nullptr;
+	ID3D11BlendState* g_AdditiveBlendState = nullptr;
+	ID3D11BlendState* g_LightningBlendState = nullptr;
 	ID3D11DepthStencilState* g_DepthStencilState = nullptr;
 	ID3D11RasterizerState* g_RasterizerState = nullptr;
 	XMFLOAT4X4 g_ViewMatrix{};
+	LightConstants g_LightConstants{};
 
 	bool LoadBinary(const char* path, std::vector<unsigned char>& bytes)
 	{
@@ -110,11 +128,20 @@ bool SpriteInstanced_Initialize()
 		SpriteInstanced_Finalize();
 		return false;
 	}
+	constant_desc.ByteWidth = sizeof(LightConstants);
+	hr = device->CreateBuffer(&constant_desc, nullptr, &g_LightConstantBuffer);
+	if (FAILED(hr))
+	{
+		SpriteInstanced_Finalize();
+		return false;
+	}
 
 	std::vector<unsigned char> vertex_shader_binary;
 	std::vector<unsigned char> pixel_shader_binary;
+	std::vector<unsigned char> lightning_pixel_shader_binary;
 	if (!LoadBinary("asset/shader/shader_vertex_instanced_2d.cso", vertex_shader_binary) ||
-		!LoadBinary("asset/shader/shader_pixel_instanced_2d.cso", pixel_shader_binary))
+		!LoadBinary("asset/shader/shader_pixel_instanced_2d.cso", pixel_shader_binary) ||
+		!LoadBinary("asset/shader/shader_pixel_lightning.cso", lightning_pixel_shader_binary))
 	{
 		hal::dout << "Instanced sprite shader loading failed." << std::endl;
 		SpriteInstanced_Finalize();
@@ -136,6 +163,14 @@ bool SpriteInstanced_Initialize()
 		SpriteInstanced_Finalize();
 		return false;
 	}
+	hr = device->CreatePixelShader(
+		lightning_pixel_shader_binary.data(), lightning_pixel_shader_binary.size(),
+		nullptr, &g_LightningPixelShader);
+	if (FAILED(hr))
+	{
+		SpriteInstanced_Finalize();
+		return false;
+	}
 
 	const D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(Vertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -144,6 +179,9 @@ bool SpriteInstanced_Initialize()
 		{ "INSTANCE_SIZE", 0, DXGI_FORMAT_R32G32_FLOAT, 1, offsetof(SpriteInstance, Size), D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 		{ "INSTANCE_ROTATION", 0, DXGI_FORMAT_R32_FLOAT, 1, offsetof(SpriteInstance, Rotation), D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 		{ "INSTANCE_COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, offsetof(SpriteInstance, Color), D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCE_TEXCOORD_OFFSET", 0, DXGI_FORMAT_R32G32_FLOAT, 1, offsetof(SpriteInstance, TexcoordOffset), D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCE_TEXCOORD_SCALE", 0, DXGI_FORMAT_R32G32_FLOAT, 1, offsetof(SpriteInstance, TexcoordScale), D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+		{ "INSTANCE_COLOR_MASK", 0, DXGI_FORMAT_R32_FLOAT, 1, offsetof(SpriteInstance, ColorMask), D3D11_INPUT_PER_INSTANCE_DATA, 1 },
 	};
 	hr = device->CreateInputLayout(
 		layout, ARRAYSIZE(layout), vertex_shader_binary.data(), vertex_shader_binary.size(), &g_InputLayout);
@@ -166,6 +204,15 @@ bool SpriteInstanced_Initialize()
 		SpriteInstanced_Finalize();
 		return false;
 	}
+	D3D11_SAMPLER_DESC lightning_sampler_desc = sampler_desc;
+	lightning_sampler_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	hr = device->CreateSamplerState(
+		&lightning_sampler_desc, &g_LightningSamplerState);
+	if (FAILED(hr))
+	{
+		SpriteInstanced_Finalize();
+		return false;
+	}
 
 	D3D11_BLEND_DESC blend_desc{};
 	blend_desc.RenderTarget[0].BlendEnable = TRUE;
@@ -177,6 +224,29 @@ bool SpriteInstanced_Initialize()
 	blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	hr = device->CreateBlendState(&blend_desc, &g_BlendState);
+	if (FAILED(hr))
+	{
+		SpriteInstanced_Finalize();
+		return false;
+	}
+	D3D11_BLEND_DESC additive_blend_desc = blend_desc;
+	additive_blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	additive_blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	additive_blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	hr = device->CreateBlendState(
+		&additive_blend_desc, &g_AdditiveBlendState);
+	if (FAILED(hr))
+	{
+		SpriteInstanced_Finalize();
+		return false;
+	}
+	D3D11_BLEND_DESC lightning_blend_desc = additive_blend_desc;
+	lightning_blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
+	lightning_blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	lightning_blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+	lightning_blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	hr = device->CreateBlendState(
+		&lightning_blend_desc, &g_LightningBlendState);
 	if (FAILED(hr))
 	{
 		SpriteInstanced_Finalize();
@@ -213,21 +283,119 @@ void SpriteInstanced_SetViewMatrix(const XMMATRIX& view_matrix)
 	XMStoreFloat4x4(&g_ViewMatrix, view_matrix);
 }
 
+void SpriteInstanced_SetRadialLight(
+	const XMFLOAT2& screen_position,
+	float radius,
+	float ambient_brightness,
+	float peak_brightness,
+	float gamma,
+	const XMFLOAT3& color,
+	float color_strength)
+{
+	g_LightConstants.RadialLight = {
+		screen_position.x,
+		screen_position.y,
+		std::max(radius, 1.0f),
+		1.0f,
+	};
+	g_LightConstants.LightLevels = {
+		std::max(ambient_brightness, 0.0f),
+		std::max(peak_brightness, 0.0f),
+		std::max(gamma, 0.01f),
+		0.0f,
+	};
+	g_LightConstants.LightColor = {
+		std::max(color.x, 0.0f),
+		std::max(color.y, 0.0f),
+		std::max(color.z, 0.0f),
+		std::max(color_strength, 0.0f),
+	};
+}
+
+void SpriteInstanced_DisableRadialLight()
+{
+	g_LightConstants.RadialLight.w = 0.0f;
+}
+
+void SpriteInstanced_SetDirectLight(const XMFLOAT3& color, float strength)
+{
+	g_LightConstants.DirectLight = {
+		std::max(color.x, 0.0f),
+		std::max(color.y, 0.0f),
+		std::max(color.z, 0.0f),
+		std::max(strength, 0.0f),
+	};
+}
+
+void SpriteInstanced_DisableDirectLight()
+{
+	g_LightConstants.DirectLight.w = 0.0f;
+}
+
+void SpriteInstanced_SetPointLightsWorld(
+	const XMFLOAT2* world_positions,
+	int light_count,
+	float radius,
+	const XMFLOAT3& color,
+	float strength)
+{
+	const int clamped_count = world_positions ?
+		std::clamp(light_count, 0, SPRITE_INSTANCED_POINT_LIGHT_CAPACITY) : 0;
+	const XMMATRIX view = XMLoadFloat4x4(&g_ViewMatrix);
+	for (int i = 0; i < clamped_count; ++i)
+	{
+		const XMVECTOR world_position = XMVectorSet(
+			world_positions[i].x, world_positions[i].y, 0.0f, 1.0f);
+		const XMVECTOR screen_position = XMVector3TransformCoord(world_position, view);
+		XMFLOAT2 screen{};
+		XMStoreFloat2(&screen, screen_position);
+		g_LightConstants.PointLights[i] = {
+			screen.x,
+			screen.y,
+			std::max(radius, 1.0f),
+			std::max(strength, 0.0f),
+		};
+		g_LightConstants.PointLightColors[i] = {
+			std::max(color.x, 0.0f),
+			std::max(color.y, 0.0f),
+			std::max(color.z, 0.0f),
+			0.0f,
+		};
+	}
+	g_LightConstants.PointLightMeta.x = static_cast<float>(clamped_count);
+}
+
+void SpriteInstanced_DisablePointLights()
+{
+	g_LightConstants.PointLightMeta.x = 0.0f;
+}
+
 void SpriteInstanced_Finalize()
 {
 	SAFE_RELEASE(g_RasterizerState);
 	SAFE_RELEASE(g_DepthStencilState);
+	SAFE_RELEASE(g_LightningBlendState);
+	SAFE_RELEASE(g_AdditiveBlendState);
 	SAFE_RELEASE(g_BlendState);
+	SAFE_RELEASE(g_LightningSamplerState);
 	SAFE_RELEASE(g_SamplerState);
 	SAFE_RELEASE(g_InputLayout);
+	SAFE_RELEASE(g_LightningPixelShader);
 	SAFE_RELEASE(g_PixelShader);
 	SAFE_RELEASE(g_VertexShader);
+	SAFE_RELEASE(g_LightConstantBuffer);
 	SAFE_RELEASE(g_SceneConstantBuffer);
 	SAFE_RELEASE(g_InstanceBuffer);
 	SAFE_RELEASE(g_VertexBuffer);
 }
 
-void SpriteInstanced_Draw(int texture_id, const SpriteInstance* instances, int instance_count)
+static void SpriteInstanced_DrawWithBlend(
+	int texture_id,
+	const SpriteInstance* instances,
+	int instance_count,
+	ID3D11BlendState* blend_state,
+	ID3D11PixelShader* pixel_shader,
+	ID3D11SamplerState* sampler_state)
 {
 	if (texture_id == TEXTURE_INVALID_ID || !instances || instance_count <= 0)
 	{
@@ -241,15 +409,17 @@ void SpriteInstanced_Draw(int texture_id, const SpriteInstance* instances, int i
 	SceneConstants constants{};
 	XMStoreFloat4x4(&constants.ViewProjection, XMMatrixTranspose(view * projection));
 	context->UpdateSubresource(g_SceneConstantBuffer, 0, nullptr, &constants, 0, 0);
+	context->UpdateSubresource(g_LightConstantBuffer, 0, nullptr, &g_LightConstants, 0, 0);
 
 	context->VSSetShader(g_VertexShader, nullptr, 0);
-	context->PSSetShader(g_PixelShader, nullptr, 0);
+	context->PSSetShader(pixel_shader, nullptr, 0);
 	context->IASetInputLayout(g_InputLayout);
 	context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	context->VSSetConstantBuffers(0, 1, &g_SceneConstantBuffer);
-	context->PSSetSamplers(0, 1, &g_SamplerState);
+	context->PSSetConstantBuffers(0, 1, &g_LightConstantBuffer);
+	context->PSSetSamplers(0, 1, &sampler_state);
 	Texture_SetTexture(texture_id);
-	context->OMSetBlendState(g_BlendState, nullptr, 0xffffffff);
+	context->OMSetBlendState(blend_state, nullptr, 0xffffffff);
 	context->OMSetDepthStencilState(g_DepthStencilState, 0);
 	context->RSSetState(g_RasterizerState);
 
@@ -272,4 +442,34 @@ void SpriteInstanced_Draw(int texture_id, const SpriteInstance* instances, int i
 		context->IASetVertexBuffers(0, ARRAYSIZE(buffers), buffers, strides, offsets);
 		context->DrawInstanced(VERTEX_COUNT, draw_count, 0, 0);
 	}
+}
+
+void SpriteInstanced_Draw(
+	int texture_id,
+	const SpriteInstance* instances,
+	int instance_count)
+{
+	SpriteInstanced_DrawWithBlend(
+		texture_id, instances, instance_count, g_BlendState,
+		g_PixelShader, g_SamplerState);
+}
+
+void SpriteInstanced_DrawAdditive(
+	int texture_id,
+	const SpriteInstance* instances,
+	int instance_count)
+{
+	SpriteInstanced_DrawWithBlend(
+		texture_id, instances, instance_count, g_AdditiveBlendState,
+		g_PixelShader, g_SamplerState);
+}
+
+void SpriteInstanced_DrawLightning(
+	int texture_id,
+	const SpriteInstance* instances,
+	int instance_count)
+{
+	SpriteInstanced_DrawWithBlend(
+		texture_id, instances, instance_count, g_LightningBlendState,
+		g_LightningPixelShader, g_LightningSamplerState);
 }

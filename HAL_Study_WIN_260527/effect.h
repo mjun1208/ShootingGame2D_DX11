@@ -1,6 +1,8 @@
 #ifndef EFFECT_H
 #define EFFECT_H
 
+#include "sprite_instanced.h"
+
 #include <DirectXMath.h>
 
 struct cEffectDesc
@@ -10,6 +12,7 @@ struct cEffectDesc
 	int FrameWidth{ 0 };
 	int FrameHeight{ 0 };
 	int FrameCount{ 1 };
+	int FrameColumns{ 1 };
 	float FrameTime{ 0.05f };
 	float DrawWidth{ 0.0f };
 	float DrawHeight{ 0.0f };
@@ -21,10 +24,11 @@ class cEffect
 public:
 	void Play(const cEffectDesc& desc);
 	void Update(float delta_time);
-	void Draw() const;
 	void Deactivate();
 
 	bool IsActive() const;
+	int GetTextureID() const;
+	bool BuildInstance(SpriteInstance& out_instance) const;
 
 private:
 	int GetCurrentFrame() const;

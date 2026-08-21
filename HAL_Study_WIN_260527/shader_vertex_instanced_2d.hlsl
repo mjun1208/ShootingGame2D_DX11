@@ -11,6 +11,9 @@ struct VS_IN
     float2 instance_size : INSTANCE_SIZE0;
     float instance_rotation : INSTANCE_ROTATION0;
     float4 instance_color : INSTANCE_COLOR0;
+    float2 instance_texcoord_offset : INSTANCE_TEXCOORD_OFFSET0;
+    float2 instance_texcoord_scale : INSTANCE_TEXCOORD_SCALE0;
+    float instance_color_mask : INSTANCE_COLOR_MASK0;
 };
 
 struct VS_OUT
@@ -18,6 +21,7 @@ struct VS_OUT
     float4 position : SV_POSITION0;
     float2 uv : TEXCOORD0;
     float4 color : COLOR0;
+    float color_mask : COLOR1;
 };
 
 VS_OUT main(VS_IN input)
@@ -32,7 +36,8 @@ VS_OUT main(VS_IN input)
     const float4 world_position = float4(rotated + input.instance_position, 0.0f, 1.0f);
 
     output.position = mul(world_position, view_projection);
-    output.uv = input.uv;
+    output.uv = input.instance_texcoord_offset + input.uv * input.instance_texcoord_scale;
     output.color = input.instance_color;
+    output.color_mask = input.instance_color_mask;
     return output;
 }

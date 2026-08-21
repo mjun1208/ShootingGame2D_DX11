@@ -64,15 +64,22 @@ int Texture_Load(const wchar_t* pFileName, bool bMipMap)
 		// 空いている場所を探す
 		if (g_Textures[i].pTexture) continue;
 		HRESULT hr;
-		// ミップマップの有無で読み込み関数を分ける
-		if (bMipMap) {
-			hr = CreateWICTextureFromFile(g_pDevice, g_pContext, pFileName,
-				&g_Textures[i].pTexture, &g_Textures[i].pTextureView);
-		}
-		else {
-			hr = CreateWICTextureFromFile(g_pDevice, pFileName,
-				&g_Textures[i].pTexture, &g_Textures[i].pTextureView);
-		}
+		// This renderer writes directly to an UNORM back buffer, so keep WIC image
+		// samples in their stored display-space RGB values. Auto-decoding PNG
+		// sRGB/gAMA metadata without a matching sRGB render-target encode makes
+		// sprites substantially darker than their source images.
+		hr = CreateWICTextureFromFileEx(
+			g_pDevice,
+			bMipMap ? g_pContext : nullptr,
+			pFileName,
+			0,
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0,
+			0,
+			WIC_LOADER_IGNORE_SRGB,
+			&g_Textures[i].pTexture,
+			&g_Textures[i].pTextureView);
 		if (FAILED(hr)) {
 			MessageBoxW(nullptr, L"テクスチャの読み込みに失敗しました", pFileName, MB_OK | MB_ICONERROR);
 			break;
