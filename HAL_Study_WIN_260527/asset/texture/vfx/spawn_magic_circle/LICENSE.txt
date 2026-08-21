@@ -1,0 +1,9 @@
+4 Summoning Circles - circle6
+Author: Luke.RUSTLTD
+Source: https://opengameart.org/content/4-summoning-circles
+License: CC0 (public domain dedication)
+Original size: 1000 x 1000 pixels
+
+The original was resized, recolored, and alpha-masked into a 64 x 64 cyan pixel
+sprite for this project. Attribution is not required under CC0; this notice is
+kept with the asset for provenance.

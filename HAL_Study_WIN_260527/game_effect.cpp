@@ -1,69 +1,230 @@
 #include "game_effect.h"
 
-#include "effect.h"
+#include "sprite_instanced.h"
 #include "texture.h"
 
-static constexpr int EFFECT_MAX = 256;
-static constexpr int EXPLOSION_FRAME_WIDTH = 128;
-static constexpr int EXPLOSION_FRAME_HEIGHT = 128;
-static constexpr int EXPLOSION_FRAME_COUNT = 8;
-static constexpr float EXPLOSION_FRAME_TIME = 0.045f;
-static constexpr float EXPLOSION_DRAW_SIZE = 150.0f;
+#include <vector>
 
-static cEffect g_Effects[EFFECT_MAX];
-static int g_ExplosionTextureID = TEXTURE_INVALID_ID;
-
-void Game_Effect_Initialize()
+namespace
 {
-	for (int i = 0; i < EFFECT_MAX; ++i)
+	constexpr wchar_t ELECTRIC_IMPACT_TEXTURE_PATH[] =
+		L"asset/texture/vfx/pvfx_foundry/electric-impact/sprite-sheet.png";
+	constexpr wchar_t WARM_EXPLOSION_TEXTURE_PATH[] =
+		L"asset/texture/vfx/pvfx_foundry/warm-explosion/sprite-sheet.png";
+	constexpr wchar_t VOID_IMPLOSION_TEXTURE_PATH[] =
+		L"asset/texture/vfx/pvfx_foundry/void-implosion/sprite-sheet.png";
+	constexpr wchar_t ENEMY_DEFEAT_SMOKE_TEXTURE_PATH[] =
+		L"asset/texture/vfx/pvfx_foundry/smoke-puff/sprite-sheet.png";
+	constexpr wchar_t SMOKE_POOF_TEXTURE_PATH[] =
+		L"asset/texture/vfx/smoke-poof/smoke.png";
+}
+
+cGameEffectManager& cGameEffectManager::GetInstance()
+{
+	static cGameEffectManager instance;
+	return instance;
+}
+
+void cGameEffectManager::Initialize()
+{
+	if (m_IsInitialized)
 	{
-		g_Effects[i] = cEffect{};
+		return;
 	}
 
-	g_ExplosionTextureID = Texture_Load(L"asset/texture/effect_explosion.png");
-}
+	m_Definitions[static_cast<std::size_t>(GameEffectType::ElectricImpact)] = {
+		ELECTRIC_IMPACT_TEXTURE_PATH,
+		TEXTURE_INVALID_ID,
+		96,
+		96,
+		14,
+		5,
+		0.05f,
+		158.0f,
+		158.0f,
+		{ 0.0f, 10.0f }
+	};
+	m_Definitions[static_cast<std::size_t>(GameEffectType::WarmExplosion)] = {
+		WARM_EXPLOSION_TEXTURE_PATH,
+		TEXTURE_INVALID_ID,
+		96,
+		96,
+		15,
+		5,
+		0.05f,
+		224.0f,
+		224.0f,
+		{ 0.0f, 18.0f }
+	};
+	m_Definitions[static_cast<std::size_t>(GameEffectType::VoidImplosion)] = {
+		VOID_IMPLOSION_TEXTURE_PATH,
+		TEXTURE_INVALID_ID,
+		96,
+		96,
+		14,
+		5,
+		0.05f,
+		176.0f,
+		176.0f,
+		{ 0.0f, 4.0f }
+	};
+	m_Definitions[static_cast<std::size_t>(GameEffectType::EnemyDefeatSmoke)] = {
+		ENEMY_DEFEAT_SMOKE_TEXTURE_PATH,
+		TEXTURE_INVALID_ID,
+		96,
+		96,
+		14,
+		5,
+		0.05f,
+		148.0f,
+		148.0f,
+		{ 0.0f, 0.0f }
+	};
+	m_Definitions[static_cast<std::size_t>(GameEffectType::SmokePoof)] = {
+		SMOKE_POOF_TEXTURE_PATH,
+		TEXTURE_INVALID_ID,
+		32,
+		32,
+		7,
+		7,
+		0.065f,
+		128.0f,
+		128.0f,
+		{ 0.0f, 0.0f }
+	};
 
-void Game_Effect_Finalize()
-{
-	Texture_Release(g_ExplosionTextureID);
-	g_ExplosionTextureID = TEXTURE_INVALID_ID;
-}
-
-void Game_Effect_Update(float delta_time)
-{
-	for (int i = 0; i < EFFECT_MAX; ++i)
+	for (Definition& definition : m_Definitions)
 	{
-		g_Effects[i].Update(delta_time);
+		definition.TextureID = Texture_Load(definition.TexturePath, false);
+	}
+
+	Clear();
+	m_IsInitialized = true;
+}
+
+void cGameEffectManager::Finalize()
+{
+	Clear();
+	for (Definition& definition : m_Definitions)
+	{
+		Texture_Release(definition.TextureID);
+		definition.TextureID = TEXTURE_INVALID_ID;
+	}
+	m_IsInitialized = false;
+}
+
+void cGameEffectManager::Update(float delta_time)
+{
+	for (cEffect& effect : m_Effects)
+	{
+		effect.Update(delta_time);
 	}
 }
 
-void Game_Effect_Draw()
+void cGameEffectManager::Clear()
 {
-	for (int i = 0; i < EFFECT_MAX; ++i)
+	for (cEffect& effect : m_Effects)
 	{
-		g_Effects[i].Draw();
+		effect.Deactivate();
 	}
+	m_ReplaceIndex = 0;
 }
 
-void Game_Effect_PlayExplosion(const DirectX::XMFLOAT2& position)
+void cGameEffectManager::Draw() const
 {
-	for (int i = 0; i < EFFECT_MAX; ++i)
+	static std::array<std::vector<SpriteInstance>, TYPE_COUNT> batches;
+	for (std::vector<SpriteInstance>& instances : batches)
 	{
-		if (g_Effects[i].IsActive())
+		instances.clear();
+	}
+
+	for (const cEffect& effect : m_Effects)
+	{
+		SpriteInstance instance{};
+		if (effect.BuildInstance(instance))
 		{
-			continue;
+			for (std::size_t type_index = 0; type_index < TYPE_COUNT; ++type_index)
+			{
+				if (m_Definitions[type_index].TextureID == effect.GetTextureID())
+				{
+					batches[type_index].push_back(instance);
+					break;
+				}
+			}
 		}
-
-		cEffectDesc desc{};
-		desc.Position = position;
-		desc.TextureID = g_ExplosionTextureID;
-		desc.FrameWidth = EXPLOSION_FRAME_WIDTH;
-		desc.FrameHeight = EXPLOSION_FRAME_HEIGHT;
-		desc.FrameCount = EXPLOSION_FRAME_COUNT;
-		desc.FrameTime = EXPLOSION_FRAME_TIME;
-		desc.DrawWidth = EXPLOSION_DRAW_SIZE;
-		desc.DrawHeight = EXPLOSION_DRAW_SIZE;
-		g_Effects[i].Play(desc);
-		break;
 	}
+
+	for (std::size_t type_index = 0; type_index < TYPE_COUNT; ++type_index)
+	{
+		const std::vector<SpriteInstance>& instances = batches[type_index];
+		if (!instances.empty())
+		{
+			SpriteInstanced_Draw(
+				m_Definitions[type_index].TextureID,
+				instances.data(),
+				static_cast<int>(instances.size()));
+		}
+	}
+}
+
+bool cGameEffectManager::Play(
+	GameEffectType type,
+	const DirectX::XMFLOAT2& position,
+	float scale,
+	const DirectX::XMFLOAT4& color)
+{
+	const Definition* definition = GetDefinition(type);
+	if (!m_IsInitialized || !definition ||
+		definition->TextureID == TEXTURE_INVALID_ID || scale <= 0.0f)
+	{
+		return false;
+	}
+
+	cEffect* target = nullptr;
+	for (cEffect& effect : m_Effects)
+	{
+		if (!effect.IsActive())
+		{
+			target = &effect;
+			break;
+		}
+	}
+	if (!target)
+	{
+		target = &m_Effects[m_ReplaceIndex];
+		m_ReplaceIndex = (m_ReplaceIndex + 1) % EFFECT_MAX;
+	}
+
+	cEffectDesc desc{};
+	desc.Position = {
+		position.x - definition->PivotOffset.x * scale,
+		position.y - definition->PivotOffset.y * scale
+	};
+	desc.TextureID = definition->TextureID;
+	desc.FrameWidth = definition->FrameWidth;
+	desc.FrameHeight = definition->FrameHeight;
+	desc.FrameCount = definition->FrameCount;
+	desc.FrameColumns = definition->FrameColumns;
+	desc.FrameTime = definition->FrameTime;
+	desc.DrawWidth = definition->DrawWidth * scale;
+	desc.DrawHeight = definition->DrawHeight * scale;
+	desc.Color = color;
+	target->Play(desc);
+	return true;
+}
+
+void cGameEffectManager::PlayEnemyDefeat(const DirectX::XMFLOAT2& position)
+{
+	Play(
+		GameEffectType::EnemyDefeatSmoke,
+		position,
+		0.78f,
+		{ 0.72f, 0.78f, 0.88f, 0.86f });
+}
+
+const cGameEffectManager::Definition* cGameEffectManager::GetDefinition(
+	GameEffectType type) const
+{
+	const std::size_t index = static_cast<std::size_t>(type);
+	return index < m_Definitions.size() ? &m_Definitions[index] : nullptr;
 }
