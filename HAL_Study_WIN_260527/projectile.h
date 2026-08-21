@@ -4,9 +4,20 @@
 #include "collision.h"
 
 #include <DirectXMath.h>
+#include <array>
+#include <cstdint>
 
 constexpr int PROJECTILE_INVALID_ID = -1;
 constexpr int PROJECTILE_MAX = 8192;
+constexpr int PROJECTILE_HIT_HISTORY_MAX = 16;
+
+enum class ProjectileHitBehavior : std::uint8_t
+{
+	Stop,
+	Area,
+	ChainLightning,
+	Pierce,
+};
 
 struct cProjectileDesc
 {
@@ -22,6 +33,9 @@ struct cProjectileDesc
 	int OwnerID{ PROJECTILE_INVALID_ID };
 	CollisionLayer Layer{ CollisionLayer::PlayerBullet };
 	CollisionLayer HitMask{ CollisionLayer::Enemy };
+	ProjectileHitBehavior HitBehavior{ ProjectileHitBehavior::Stop };
+	float AreaRadius{ 0.0f };
+	int MaxTargetHits{ 1 };
 	bool UsesTrail{ false };
 	int TrailTextureID{ -1 };
 	float TrailEmitInterval{ 0.02f };
@@ -50,6 +64,11 @@ struct cProjectile
 	int OwnerID{ PROJECTILE_INVALID_ID };
 	CollisionLayer Layer{ CollisionLayer::PlayerBullet };
 	CollisionLayer HitMask{ CollisionLayer::Enemy };
+	ProjectileHitBehavior HitBehavior{ ProjectileHitBehavior::Stop };
+	float AreaRadius{ 0.0f };
+	int MaxTargetHits{ 1 };
+	int TargetHitCount{ 0 };
+	std::array<int, PROJECTILE_HIT_HISTORY_MAX> HitTargetIDs{};
 	bool UsesTrail{ false };
 	int TrailTextureID{ -1 };
 	float TrailEmitInterval{ 0.02f };
@@ -73,6 +92,7 @@ void ProjectileSystem_RegisterColliders();
 void ProjectileSystem_Deactivate(int projectile_id);
 bool ProjectileSystem_IsActive(int projectile_id);
 const cProjectile* ProjectileSystem_GetProjectile(int projectile_id);
+bool ProjectileSystem_TryRegisterTargetHit(int projectile_id, int target_id);
 int ProjectileSystem_GetActiveCount();
 int ProjectileSystem_GetCapacity();
 

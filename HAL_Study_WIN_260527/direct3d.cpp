@@ -1,4 +1,5 @@
 #include "direct3d.h"
+#include "time_stop_effect.h"
 #include <d3d11.h>
 #include "debug_ostream.h"
 
@@ -95,11 +96,20 @@ bool Direct3D_Initialize(HWND hWnd)
 	viewport.MaxDepth = 1.0f;
 	g_pDeviceContext->RSSetViewports(1, &viewport); // ビューポートの設定
 
+	if (!TimeStopEffect_Initialize(
+		 g_pDevice, g_pDeviceContext, g_pRenderTargetView, g_pDepthStencilView,
+		 g_BackBufferDesc.Width, g_BackBufferDesc.Height))
+	{
+		Direct3D_Finalize();
+		return false;
+	}
+
 	return true;
 }
 
 void Direct3D_Finalize()
 {
+	TimeStopEffect_Finalize();
 	ReleaseBackBuffer();
 
 	SAFE_RELEASE(g_pSwapChain);
@@ -115,10 +125,12 @@ void Direct3D_DrawBegin()
 
 	// レンダーターゲットビューとデプスステンシルビューの設定
 	g_pDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
+	TimeStopEffect_BeginCapture();
 }
 
 void Direct3D_Present()
 {
+	TimeStopEffect_EndCapture();
 	if (USE_VSYNC)
 	{
 		g_pSwapChain->Present(1, 0);

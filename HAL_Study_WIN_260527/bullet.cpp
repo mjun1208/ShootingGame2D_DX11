@@ -33,7 +33,7 @@ void cBullet::Draw(int texture_id) const
 		return;
 	}
 
-	Sprite_Draw(texture_id, m_Position.x, m_Position.y, WIDTH, HEIGHT);
+	Sprite_Draw(texture_id, m_Position.x, m_Position.y, 0.0f, 0.25f);
 }
 
 bool cBullet::IsActive() const

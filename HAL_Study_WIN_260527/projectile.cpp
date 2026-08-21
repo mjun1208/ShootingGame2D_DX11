@@ -1,6 +1,6 @@
 #include "projectile.h"
 
-#include "config.h"
+#include "procedural_map.h"
 #include "sprite.h"
 #include "sprite_instanced.h"
 #include "texture.h"
@@ -10,8 +10,6 @@
 #include <cmath>
 #include <unordered_map>
 #include <vector>
-
-static constexpr float PROJECTILE_REMOVE_MARGIN = 256.0f;
 
 static cProjectile g_Projectiles[PROJECTILE_MAX];
 static int g_ActiveProjectiles[PROJECTILE_MAX];
@@ -28,21 +26,6 @@ static float Projectile_ClampPositive(float value, float fallback)
 static bool Projectile_IsValidID(int projectile_id)
 {
 	return projectile_id >= 0 && projectile_id < PROJECTILE_MAX;
-}
-
-static bool Projectile_IsOutOfScreen(const cProjectile& projectile)
-{
-	const float half_width = projectile.Width * 0.5f;
-	const float half_height = projectile.Height * 0.5f;
-	const float left = -PROJECTILE_REMOVE_MARGIN - half_width;
-	const float right = static_cast<float>(SCREEN_WIDTH) + PROJECTILE_REMOVE_MARGIN + half_width;
-	const float top = -PROJECTILE_REMOVE_MARGIN - half_height;
-	const float bottom = static_cast<float>(SCREEN_HEIGHT) + PROJECTILE_REMOVE_MARGIN + half_height;
-
-	return projectile.Position.x < left ||
-		projectile.Position.x > right ||
-		projectile.Position.y < top ||
-		projectile.Position.y > bottom;
 }
 
 static void Projectile_EmitTrail(cProjectile& projectile, float delta_time)
@@ -155,6 +138,12 @@ int ProjectileSystem_Fire(const cProjectileDesc& desc)
 	projectile.OwnerID = desc.OwnerID;
 	projectile.Layer = desc.Layer;
 	projectile.HitMask = desc.HitMask;
+	projectile.HitBehavior = desc.HitBehavior;
+	projectile.AreaRadius = std::max(desc.AreaRadius, 0.0f);
+	projectile.MaxTargetHits = std::clamp(
+		desc.MaxTargetHits, 1, PROJECTILE_HIT_HISTORY_MAX);
+	projectile.TargetHitCount = 0;
+	projectile.HitTargetIDs.fill(PROJECTILE_INVALID_ID);
 	projectile.UsesTrail = desc.UsesTrail;
 	projectile.TrailTextureID = desc.TrailTextureID;
 	projectile.TrailEmitInterval = Projectile_ClampPositive(desc.TrailEmitInterval, 0.02f);
@@ -185,11 +174,17 @@ void ProjectileSystem_Update(float delta_time)
 
 		projectile.Age += delta_time;
 		Projectile_EmitTrail(projectile, delta_time);
-		projectile.Position.x += projectile.Velocity.x * delta_time;
-		projectile.Position.y += projectile.Velocity.y * delta_time;
+		const DirectX::XMFLOAT2 previous_position = projectile.Position;
+		const DirectX::XMFLOAT2 next_position = {
+			projectile.Position.x + projectile.Velocity.x * delta_time,
+			projectile.Position.y + projectile.Velocity.y * delta_time,
+		};
+		const bool hit_map = !ProceduralMap_IsSegmentWalkable(
+			previous_position, next_position, projectile.Radius);
+		projectile.Position = next_position;
 
 		const bool is_life_over = projectile.LifeTime > 0.0f && projectile.Age >= projectile.LifeTime;
-		if (is_life_over || Projectile_IsOutOfScreen(projectile))
+		if (is_life_over || hit_map)
 		{
 			ProjectileSystem_Deactivate(projectile_id);
 			continue;
@@ -283,6 +278,32 @@ const cProjectile* ProjectileSystem_GetProjectile(int projectile_id)
 	}
 
 	return &g_Projectiles[projectile_id];
+}
+
+bool ProjectileSystem_TryRegisterTargetHit(int projectile_id, int target_id)
+{
+	if (!ProjectileSystem_IsActive(projectile_id) || target_id < 0)
+	{
+		return false;
+	}
+
+	cProjectile& projectile = g_Projectiles[projectile_id];
+	for (int i = 0; i < projectile.TargetHitCount; ++i)
+	{
+		if (projectile.HitTargetIDs[i] == target_id)
+		{
+			return false;
+		}
+	}
+
+	if (projectile.TargetHitCount >= projectile.MaxTargetHits ||
+		projectile.TargetHitCount >= PROJECTILE_HIT_HISTORY_MAX)
+	{
+		return false;
+	}
+
+	projectile.HitTargetIDs[projectile.TargetHitCount++] = target_id;
+	return true;
 }
 
 int ProjectileSystem_GetActiveCount()
