@@ -25,17 +25,11 @@ namespace
 	constexpr char HOW_TO_HEADER[] = "HOW TO PLAY";
 	constexpr char HOW_TO_BODY[] =
 		"MOVE          W A S D\n"
-		"ATTACK        AUTOMATIC - NEAREST ENEMY\n"
 		"DASH          SPACE\n"
-		"TIME STOP     Q - DASH UP TO 3 TIMES\n"
-		"FAST RUN      AUTOMATIC OUT OF COMBAT\n"
+		"TIME STOP     Q\n"
 		"MAP           M\n"
-		"INTERACT      F - CHEST / EXIT\n"
-		"PAUSE         ESC\n"
-		"\n"
-		"OPEN CHESTS TO UNLOCK NEW WEAPONS.\n"
-		"LEVEL UP AND CLEAR ROUNDS TO UPGRADE THEM.\n"
-		"CLEAR FOUR ROUNDS; EACH ENDS WITH A BOSS.";
+		"INTERACT      F\n"
+		"PAUSE         ESC";
 	constexpr char CREDITS_HEADER[] = "CREDITS";
 	constexpr char CREDITS_BODY[] =
 		"GAME DESIGN AND PROGRAMMING\n"
@@ -132,12 +126,12 @@ bool TitleScene::Initialize()
 		L"asset/font/fixedsys/FixedsysExcelsior_ascii_320x512.png",
 		SCREEN_WIDTH,
 		SCREEN_HEIGHT,
-		360.0f,
-		305.0f,
-		12,
+		540.0f,
+		335.0f,
+		6,
 		0,
-		35.0f,
-		18.0f);
+		55.0f,
+		22.0f);
 	m_CreditsHeaderText = CreateCenteredText(
 		CREDITS_HEADER,
 		205.0f,
