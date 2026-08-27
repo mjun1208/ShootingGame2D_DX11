@@ -466,7 +466,12 @@ void IngameScene::UpdateRoundTransition(float delta_time)
 		{
 			return;
 		}
-		// Reward selection will be inserted before this advance later.
+		if (m_CurrentRound <
+			GameDataManager::GetInstance().GetMapGameData().GetTotalRoundCount() &&
+			m_MenuController.OpenAugment(IngameAugmentReason::RoundClear))
+		{
+			return;
+		}
 		AdvanceToNextRound();
 		return;
 	}
@@ -536,6 +541,13 @@ void IngameScene::ApplyAugment(const IngameAugmentSelection& selection)
 		break;
 	case IngameAugmentChoice::None:
 	default:
+		return;
+	}
+
+	if (selection.Reason == IngameAugmentReason::RoundClear)
+	{
+		m_MenuController.CloseAugment();
+		AdvanceToNextRound();
 		return;
 	}
 

@@ -3,6 +3,7 @@
 #include "Audio.h"
 #include "game_bullet.h"
 #include "game_effect.h"
+#include "game_player.h"
 #include "sprite.h"
 #include "texture.h"
 
@@ -25,6 +26,8 @@ namespace
 	constexpr float CHEST_DRAW_HEIGHT = 144.0f;
 	constexpr float CHEST_INTERACTION_RADIUS = 150.0f;
 	constexpr float CHEST_PROMPT_MARGIN = -10.0f;
+	constexpr float CHEST_FALLBACK_HEAL_AMOUNT = 30.0f;
+	constexpr float CHEST_FALLBACK_EXPERIENCE_RATIO = 0.20f;
 }
 
 void Chest::Initialize(const DirectX::XMFLOAT2& position)
@@ -166,7 +169,16 @@ bool Chest::BuildPointLight(SpritePointLight& out_light) const
 void Chest::FinishOpening()
 {
 	m_State = State::Gone;
-	GameBullet::UnlockRandomWeapon();
+	if (!GameBullet::UnlockRandomWeapon())
+	{
+		GamePlayer::Heal(CHEST_FALLBACK_HEAL_AMOUNT);
+		const int bonus_experience = std::max(
+			1,
+			static_cast<int>(
+				GamePlayer::GetExperienceToNextLevel() *
+				CHEST_FALLBACK_EXPERIENCE_RATIO));
+		GamePlayer::AddExperience(bonus_experience);
+	}
 	cGameEffectManager::GetInstance().Play(
 		GameEffectType::SmokePoof,
 		{ m_Position.x, m_Position.y - 4.0f },

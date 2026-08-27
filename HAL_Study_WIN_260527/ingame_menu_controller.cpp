@@ -227,6 +227,7 @@ struct IngameMenuController::Impl
 	int PanelTextureID{ TEXTURE_INVALID_ID };
 	std::unique_ptr<hal::DebugText> PauseTitleText;
 	std::unique_ptr<hal::DebugText> AugmentTitleText;
+	std::unique_ptr<hal::DebugText> RoundRewardTitleText;
 	std::unique_ptr<hal::DebugText> AugmentHelpText;
 	cButton ResumeButton;
 	cButton RetryButton;
@@ -246,6 +247,7 @@ struct IngameMenuController::Impl
 	bool PauseOpen{ false };
 	bool PauseTransitioning{ false };
 	bool AugmentOpen{ false };
+	IngameAugmentReason AugmentReason{ IngameAugmentReason::LevelUp };
 
 	void SelectPauseButton(int index)
 	{
@@ -281,11 +283,11 @@ struct IngameMenuController::Impl
 				continue;
 			}
 			candidates.push_back(
-				{ weapon_type, IngameAugmentChoice::MultiShot });
+				{ weapon_type, IngameAugmentChoice::MultiShot, AugmentReason });
 			candidates.push_back(
-				{ weapon_type, IngameAugmentChoice::Overdrive });
+				{ weapon_type, IngameAugmentChoice::Overdrive, AugmentReason });
 			candidates.push_back(
-				{ weapon_type, IngameAugmentChoice::Power });
+				{ weapon_type, IngameAugmentChoice::Power, AugmentReason });
 		}
 		if (candidates.empty())
 		{
@@ -366,8 +368,10 @@ bool IngameMenuController::Initialize()
 	m_Impl->PauseTitleText = CreateCenteredText("PAUSED", 155.0f, 46.0f, 48.0f);
 	m_Impl->AugmentTitleText = CreateCenteredText(
 		"LEVEL UP - CHOOSE ONE", 155.0f, 30.0f, 42.0f);
+	m_Impl->RoundRewardTitleText = CreateCenteredText(
+		"ROUND CLEAR - CHOOSE ONE", 155.0f, 30.0f, 42.0f);
 	m_Impl->AugmentHelpText = CreateCenteredText(
-		"A/D OR ARROWS: CHOOSE    ENTER: SELECT",
+		"A/D OR ARROWS: CHOOSE    ENTER / CLICK: SELECT",
 		875.0f,
 		16.0f,
 		24.0f);
@@ -388,6 +392,7 @@ void IngameMenuController::Finalize()
 	m_Impl->RetryButton.Finalize();
 	m_Impl->ResumeButton.Finalize();
 	m_Impl->AugmentHelpText.reset();
+	m_Impl->RoundRewardTitleText.reset();
 	m_Impl->AugmentTitleText.reset();
 	m_Impl->PauseTitleText.reset();
 	Texture_Release(m_Impl->PanelTextureID);
@@ -529,8 +534,9 @@ IngamePauseAction IngameMenuController::UpdatePause()
 	}
 }
 
-bool IngameMenuController::OpenAugment()
+bool IngameMenuController::OpenAugment(IngameAugmentReason reason)
 {
+	m_Impl->AugmentReason = reason;
 	if (!m_Impl->BuildAugmentOptions())
 	{
 		m_Impl->AugmentOpen = false;
@@ -562,9 +568,13 @@ IngameAugmentSelection IngameMenuController::UpdateAugment()
 		return {};
 	}
 
+	int clicked_choice = -1;
 	for (int i = 0; i < Augment::ChoiceCount; ++i)
 	{
-		m_Impl->AugmentSelectButtons[i].Update();
+		if (m_Impl->AugmentSelectButtons[i].Update())
+		{
+			clicked_choice = i;
+		}
 	}
 	const int mouse_x = InputMouse_GetX();
 	const int mouse_y = InputMouse_GetY();
@@ -597,11 +607,18 @@ IngameAugmentSelection IngameMenuController::UpdateAugment()
 		m_Impl->SelectAugment(m_Impl->SelectedAugment + 1);
 	}
 
-	if (!InputKeyboard_IsTrigger(KK_ENTER))
+	if (clicked_choice >= 0)
+	{
+		m_Impl->SelectAugment(clicked_choice);
+	}
+	else if (!InputKeyboard_IsTrigger(KK_ENTER))
 	{
 		return {};
 	}
-	Button_PlayConfirmSound();
+	else
+	{
+		Button_PlayConfirmSound();
+	}
 
 	const IngameAugmentSelection selection =
 		m_Impl->AugmentOptions[m_Impl->SelectedAugment];
@@ -645,12 +662,17 @@ void IngameMenuController::Draw(int overlay_texture_id)
 	DrawDimmer(m_Impl->PanelTextureID, 0.86f);
 	DrawPanel(
 		m_Impl->PanelTextureID, Augment::PanelWidth, Augment::PanelHeight);
-	if (m_Impl->AugmentTitleText)
+	hal::DebugText* augment_title =
+		m_Impl->AugmentReason == IngameAugmentReason::RoundClear ?
+		m_Impl->RoundRewardTitleText.get() : m_Impl->AugmentTitleText.get();
+	if (augment_title)
 	{
-		m_Impl->AugmentTitleText->Clear();
-		m_Impl->AugmentTitleText->SetText(
-			"LEVEL UP - CHOOSE ONE", { 1.0f, 0.78f, 0.30f, 1.0f });
-		m_Impl->AugmentTitleText->Draw();
+		augment_title->Clear();
+		augment_title->SetText(
+			m_Impl->AugmentReason == IngameAugmentReason::RoundClear ?
+				"ROUND CLEAR - CHOOSE ONE" : "LEVEL UP - CHOOSE ONE",
+			{ 1.0f, 0.78f, 0.30f, 1.0f });
+		augment_title->Draw();
 	}
 
 	for (int i = 0; i < Augment::ChoiceCount; ++i)
@@ -717,7 +739,7 @@ void IngameMenuController::Draw(int overlay_texture_id)
 	{
 		m_Impl->AugmentHelpText->Clear();
 		m_Impl->AugmentHelpText->SetText(
-			"A/D OR ARROWS: CHOOSE    ENTER: SELECT",
+			"A/D OR ARROWS: CHOOSE    ENTER / CLICK: SELECT",
 			{ 0.72f, 0.66f, 0.58f, 1.0f });
 		m_Impl->AugmentHelpText->Draw();
 	}

@@ -22,10 +22,17 @@ enum class IngameAugmentChoice
 	Power,
 };
 
+enum class IngameAugmentReason
+{
+	LevelUp,
+	RoundClear,
+};
+
 struct IngameAugmentSelection
 {
 	BulletType WeaponType{ BulletType::Count };
 	IngameAugmentChoice Choice{ IngameAugmentChoice::None };
+	IngameAugmentReason Reason{ IngameAugmentReason::LevelUp };
 };
 
 class IngameMenuController final
@@ -47,7 +54,8 @@ public:
 	IngamePauseAction UpdatePause();
 
 	// Returns false when there is no owned weapon to build a reward from.
-	bool OpenAugment();
+	bool OpenAugment(
+		IngameAugmentReason reason = IngameAugmentReason::LevelUp);
 	void CloseAugment();
 	bool IsAugmentOpen() const;
 	IngameAugmentSelection UpdateAugment();

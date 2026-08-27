@@ -428,3 +428,8 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Local Codex working artifacts
+/.codex_tmp/
+/outputs/
+/tmp/
