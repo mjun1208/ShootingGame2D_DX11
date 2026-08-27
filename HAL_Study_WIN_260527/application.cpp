@@ -17,9 +17,11 @@ bool Application_Initialize(HWND hWnd)
 {
 	InputKeyboard_Initialize();
 	InputMouse_Initialize(hWnd);
+	InitAudio();
 
 	if (!Direct3D_Initialize(hWnd))
 	{
+		ReleaseAudio();
 		return false;
 	}
 
@@ -29,6 +31,7 @@ bool Application_Initialize(HWND hWnd)
 	{
 		Texture_Finalize();
 		Direct3D_Finalize();
+		ReleaseAudio();
 		return false;
 	}
 
@@ -38,6 +41,7 @@ bool Application_Initialize(HWND hWnd)
 		Shader_Finalize();
 		Texture_Finalize();
 		Direct3D_Finalize();
+		ReleaseAudio();
 		return false;
 	}
 
@@ -47,18 +51,17 @@ bool Application_Initialize(HWND hWnd)
 		Shader_Finalize();
 		Texture_Finalize();
 		Direct3D_Finalize();
+		ReleaseAudio();
 		return false;
 	}
-
-	InitAudio();
 
 	return true;
 }
 
 void Application_Finalize()
 {
-	ReleaseAudio();
 	SceneManager_Finalize();
+	ReleaseAudio();
 	Sprite_Finalize();
 	Texture_Finalize();
 	Shader_Finalize();

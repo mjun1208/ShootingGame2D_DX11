@@ -1,0 +1,9 @@
+UI navigation, confirm, and back sounds
+
+Source: Interface SFX Pack 1 by ObsydianX
+https://obsydianx.itch.io/interface-sfx-pack-1
+
+License: CC0 1.0 Universal (Public Domain Dedication)
+https://creativecommons.org/publicdomain/zero/1.0/
+
+The source WAV files were trimmed, faded, and gain-adjusted for this game.

@@ -13,19 +13,28 @@ void cEnemy::Spawn(
 	const DirectX::XMFLOAT2& position,
 	float speed,
 	float max_hit_point,
-	float collision_radius)
+	float collision_radius,
+	const DirectX::XMFLOAT2& map_collision_offset,
+	float map_collision_radius)
 {
 	m_Position = position;
 	m_KnockbackVelocity = { 0.0f, 0.0f };
 	m_Speed = speed;
-	m_HitPoint = std::max(max_hit_point, 1.0f);
+	m_MaxHitPoint = std::max(max_hit_point, 1.0f);
+	m_HitPoint = m_MaxHitPoint;
 	m_CollisionRadius = std::max(collision_radius, 1.0f);
+	m_MapCollisionOffset = map_collision_offset;
+	m_MapCollisionRadius = map_collision_radius > 0.0f ?
+		map_collision_radius : m_CollisionRadius;
 	m_DissolveTimer = 0.0f;
 	m_FacingLeft = false;
 	m_State = State::Alive;
 }
 
-void cEnemy::Update(float delta_time, const DirectX::XMFLOAT2& target_position)
+void cEnemy::Update(
+	float delta_time,
+	const DirectX::XMFLOAT2& target_position,
+	float chase_speed_scale)
 {
 	if (m_State == State::Inactive)
 	{
@@ -39,8 +48,7 @@ void cEnemy::Update(float delta_time, const DirectX::XMFLOAT2& target_position)
 			m_KnockbackVelocity.x * safe_delta_time,
 			m_KnockbackVelocity.y * safe_delta_time,
 		};
-		m_Position = ProceduralMap_MoveActorCircle(
-			m_Position, knockback_movement, m_CollisionRadius);
+		MoveWithMapCollision(knockback_movement);
 		DecelerateKnockback(safe_delta_time);
 
 		m_DissolveTimer += safe_delta_time;
@@ -65,16 +73,19 @@ void cEnemy::Update(float delta_time, const DirectX::XMFLOAT2& target_position)
 		m_KnockbackVelocity.x * m_KnockbackVelocity.x +
 		m_KnockbackVelocity.y * m_KnockbackVelocity.y);
 	const float chase_weight = std::max(0.0f, 1.0f - knockback_speed / MAX_KNOCKBACK_SPEED);
+	const float movement_scale = std::clamp(chase_speed_scale, -1.6f, 2.0f);
 	const float distance_sq = to_target_x * to_target_x + to_target_y * to_target_y;
 	if (distance_sq > 0.0001f)
 	{
 		const float inv_distance = 1.0f / std::sqrt(distance_sq);
 		movement.x +=
-			to_target_x * inv_distance * m_Speed * chase_weight * safe_delta_time;
+			to_target_x * inv_distance * m_Speed * chase_weight *
+			movement_scale * safe_delta_time;
 		movement.y +=
-			to_target_y * inv_distance * m_Speed * chase_weight * safe_delta_time;
+			to_target_y * inv_distance * m_Speed * chase_weight *
+			movement_scale * safe_delta_time;
 	}
-	m_Position = ProceduralMap_MoveActorCircle(m_Position, movement, m_CollisionRadius);
+	MoveWithMapCollision(movement);
 	DecelerateKnockback(safe_delta_time);
 }
 
@@ -85,7 +96,20 @@ void cEnemy::ApplySeparation(const DirectX::XMFLOAT2& movement)
 		return;
 	}
 
-	m_Position = ProceduralMap_MoveActorCircle(m_Position, movement, m_CollisionRadius);
+	MoveWithMapCollision(movement);
+}
+
+void cEnemy::MoveWithMapCollision(const DirectX::XMFLOAT2& movement)
+{
+	const DirectX::XMFLOAT2 map_center = GetMapCollisionCenter();
+	const DirectX::XMFLOAT2 moved_center = ProceduralMap_MoveActorCircle(
+		map_center,
+		movement,
+		m_MapCollisionRadius + MAP_COLLISION_PADDING);
+	m_Position = {
+		moved_center.x - m_MapCollisionOffset.x,
+		moved_center.y - m_MapCollisionOffset.y,
+	};
 }
 
 void cEnemy::ApplyKnockback(const DirectX::XMFLOAT2& direction, float speed)
@@ -197,6 +221,20 @@ void cEnemy::ApplyDamage(float damage)
 	}
 }
 
+void cEnemy::SetHitPoint(float hit_point)
+{
+	if (m_State == State::Inactive)
+	{
+		return;
+	}
+	m_HitPoint = std::clamp(hit_point, 0.0f, m_MaxHitPoint);
+	if (m_HitPoint <= 0.0f)
+	{
+		m_DissolveTimer = 0.0f;
+		m_State = State::Dying;
+	}
+}
+
 void cEnemy::Deactivate()
 {
 	m_State = State::Inactive;
@@ -227,4 +265,32 @@ DirectX::XMFLOAT2 cEnemy::GetPosition() const
 float cEnemy::GetCollisionRadius() const
 {
 	return m_CollisionRadius;
+}
+
+DirectX::XMFLOAT2 cEnemy::GetMapCollisionCenter() const
+{
+	return {
+		m_Position.x + m_MapCollisionOffset.x,
+		m_Position.y + m_MapCollisionOffset.y,
+	};
+}
+
+float cEnemy::GetMapCollisionRadius() const
+{
+	return m_MapCollisionRadius;
+}
+
+float cEnemy::GetHitPoint() const
+{
+	return m_HitPoint;
+}
+
+float cEnemy::GetMaxHitPoint() const
+{
+	return m_MaxHitPoint;
+}
+
+float cEnemy::GetHitPointRatio() const
+{
+	return m_MaxHitPoint > 0.0f ? m_HitPoint / m_MaxHitPoint : 0.0f;
 }

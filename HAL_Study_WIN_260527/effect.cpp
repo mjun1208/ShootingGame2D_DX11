@@ -66,7 +66,7 @@ bool cEffect::BuildInstance(SpriteInstance& out_instance) const
 	out_instance = {
 		m_Desc.Position,
 		{ m_Desc.DrawWidth, m_Desc.DrawHeight },
-		0.0f,
+		m_Desc.Rotation,
 		m_Desc.Color,
 		{
 			static_cast<float>(frame_x) / static_cast<float>(texture_size.x),
@@ -78,6 +78,30 @@ bool cEffect::BuildInstance(SpriteInstance& out_instance) const
 		},
 	};
 	return true;
+}
+
+bool cEffect::BuildPointLight(SpritePointLight& out_light) const
+{
+	if (!m_IsActive || m_Desc.LightRadius <= 0.0f ||
+		m_Desc.LightStrength <= 0.0f)
+	{
+		return false;
+	}
+
+	const float duration = m_Desc.FrameTime *
+		static_cast<float>(m_Desc.FrameCount);
+	const float progress = duration > 0.0f ?
+		std::clamp(m_ElapsedTime / duration, 0.0f, 1.0f) : 1.0f;
+	const float attack = std::clamp(progress / 0.06f, 0.0f, 1.0f);
+	const float fade = 1.0f - std::clamp(
+		(progress - 0.28f) / 0.72f, 0.0f, 1.0f);
+	const float smooth_fade = fade * fade * (3.0f - 2.0f * fade);
+
+	out_light.Position = m_Desc.LightPosition;
+	out_light.Radius = m_Desc.LightRadius * (0.82f + progress * 0.28f);
+	out_light.Strength = m_Desc.LightStrength * attack * smooth_fade;
+	out_light.Color = m_Desc.LightColor;
+	return out_light.Strength > 0.001f;
 }
 
 int cEffect::GetCurrentFrame() const

@@ -2,6 +2,7 @@
 #define CHEST_H
 
 #include "interactable.h"
+#include "sprite_lighting.h"
 
 class Chest final : public IInteractable
 {
@@ -17,6 +18,7 @@ public:
 	DirectX::XMFLOAT2 GetInteractionPromptPosition() const override;
 	void Interact() override;
 	bool IsGone() const;
+	bool BuildPointLight(SpritePointLight& out_light) const;
 
 private:
 	enum class State
@@ -30,6 +32,7 @@ private:
 
 	DirectX::XMFLOAT2 m_Position{};
 	int m_TextureID{ -1 };
+	int m_OpenAudioID{ -1 };
 	float m_AnimationElapsedTime{ 0.0f };
 	State m_State{ State::Gone };
 };

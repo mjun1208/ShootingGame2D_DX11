@@ -6,23 +6,23 @@
 
 using namespace DirectX;
 
-// 管理できるテクスチャの最大数
+// 管理できるテクス?ャの最大数
 static constexpr int TEXTURE_MAX = 1024;
 
-// 1つのテクスチャが持つ情報
+// 1つのテクス?ャが持つ情報
 struct Texture
 {
-	std::wstring filename; // ファイル名（重複チェック用）
+	std::wstring filename; // フ?イル名（重複?ェック用）
 	unsigned int width = 0; // 幅
 	unsigned int height = 0; // 高さ
-	ID3D11Resource* pTexture = nullptr; // テクスチャリソース
-	ID3D11ShaderResourceView* pTextureView = nullptr; // シェーダーリソースビュー
+	ID3D11Resource* pTexture = nullptr; // テクス?ャリ??ス
+	ID3D11ShaderResourceView* pTextureView = nullptr; // シェ???リ??スビュ?
 };
 
-// テクスチャ管理用の配列
+// テクス?ャ管理用の配列
 static Texture g_Textures[TEXTURE_MAX];
 
-// デバイスとコンテキストの保存用ポインタ
+// デバイスとコンテキストの保存用?イン?
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
 
@@ -35,7 +35,7 @@ void Texture_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Texture_Finalize()
 {
-	// 全てのテクスチャを解放
+	// 全てのテクス?ャを解放
 	Texture_AllRelease();
 }
 
@@ -49,11 +49,11 @@ int Texture_Load(const wchar_t* pFileName, bool bMipMap)
 	{
 		return TEXTURE_INVALID_ID;
 	}
-	// ① すでに読み込まれているファイルかチェック
+	// ? すでに読み込まれているフ?イルか?ェック
 	for (int i = 0; i < TEXTURE_MAX; i++) 
 	{
 		if (!g_Textures[i].pTexture) continue;
-		// 同じファイル名が見つかったら、そのIDを返す（新しく作らない）
+		// 同じフ?イル名が見つかったら、そのIDを返す（新しく作らない）
 		if (g_Textures[i].filename == pFileName) {
 			return i;
 		}
@@ -81,7 +81,7 @@ int Texture_Load(const wchar_t* pFileName, bool bMipMap)
 			&g_Textures[i].pTexture,
 			&g_Textures[i].pTextureView);
 		if (FAILED(hr)) {
-			MessageBoxW(nullptr, L"テクスチャの読み込みに失敗しました", pFileName, MB_OK | MB_ICONERROR);
+			MessageBoxW(nullptr, L"テクス?ャの読み込みに失敗しました", pFileName, MB_OK | MB_ICONERROR);
 			break;
 		}
 		// ③ 画像のサイズ（幅と高さ）を取得して保存
@@ -90,9 +90,9 @@ int Texture_Load(const wchar_t* pFileName, bool bMipMap)
 		pTexture->GetDesc(&t2desc);
 		g_Textures[i].width = t2desc.Width;
 		g_Textures[i].height = t2desc.Height;
-		// ファイル名を記録
+		// フ?イル名を記?
 		g_Textures[i].filename = pFileName;
-		// 登録したID（配列のインデックス）を返す
+		// 登?したID（配列のインデックス）を返す
 		return i;
 	}
 
@@ -154,7 +154,7 @@ void Texture_Release(int texture_id)
 	t.height = 0;
 }
 
-// 複数のIDをまとめて解放するオーバーロード
+// 複数のIDをまとめて解放するオ?バ?ロ?ド
 void Texture_Release(const int* pTextureIDs, int count)
 {
 	if (!pTextureIDs || count <= 0) {
@@ -168,7 +168,7 @@ void Texture_Release(const int* pTextureIDs, int count)
 	}
 }
 
-// 全てのテクスチャを解放
+// 全てのテクス?ャを解放
 void Texture_AllRelease()
 {
 	for (int i = 0; i < TEXTURE_MAX; i++) {

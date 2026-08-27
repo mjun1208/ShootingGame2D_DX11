@@ -1,3 +1,6 @@
+#define SPRITE_LIGHT_BUFFER_REGISTER b0
+#include "sprite_lighting.hlsli"
+
 struct PS_IN
 {
     float4 position : SV_POSITION0;
@@ -8,19 +11,6 @@ struct PS_IN
 
 Texture2D sprite_texture : register(t0);
 SamplerState sprite_sampler : register(s0);
-
-static const int POINT_LIGHT_CAPACITY = 16;
-
-cbuffer LightBuffer : register(b0)
-{
-    float4 radial_light;
-    float4 light_levels;
-    float4 light_color;
-    float4 direct_light;
-    float4 point_light_meta;
-    float4 point_lights[POINT_LIGHT_CAPACITY];
-    float4 point_light_colors[POINT_LIGHT_CAPACITY];
-}
 
 float4 main(PS_IN input) : SV_TARGET
 {
@@ -50,28 +40,7 @@ float4 main(PS_IN input) : SV_TARGET
         discard;
     }
 
-    if (radial_light.w > 0.5f)
-    {
-        const float distance_from_light = distance(input.position.xy, radial_light.xy);
-        const float inner_radius = radial_light.z * 0.20f;
-        const float attenuation = 1.0f - smoothstep(
-            inner_radius, radial_light.z, distance_from_light);
-        const float brightness = lerp(light_levels.x, light_levels.y, attenuation);
-        color.rgb = pow(saturate(color.rgb), light_levels.zzz) * brightness;
-        color.rgb += light_color.rgb * light_color.a * attenuation;
-    }
-
-    color.rgb *= 1.0f + direct_light.rgb * direct_light.a;
-
-    const int point_light_count = min((int)point_light_meta.x, POINT_LIGHT_CAPACITY);
-    [loop]
-    for (int i = 0; i < point_light_count; ++i)
-    {
-        const float distance_from_light = distance(input.position.xy, point_lights[i].xy);
-        const float inner_radius = point_lights[i].z * 0.12f;
-        const float attenuation = 1.0f - smoothstep(
-            inner_radius, point_lights[i].z, distance_from_light);
-        color.rgb += point_light_colors[i].rgb * point_lights[i].w * attenuation;
-    }
+    color.rgb = SpriteLighting_ApplyRadial(color.rgb, input.position.xy);
+    color.rgb = SpriteLighting_ApplyWorld(color.rgb, input.position.xy);
     return color;
 }

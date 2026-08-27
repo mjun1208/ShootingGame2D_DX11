@@ -16,7 +16,12 @@ struct cEffectDesc
 	float FrameTime{ 0.05f };
 	float DrawWidth{ 0.0f };
 	float DrawHeight{ 0.0f };
+	float Rotation{ 0.0f };
 	DirectX::XMFLOAT4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
+	DirectX::XMFLOAT2 LightPosition{ 0.0f, 0.0f };
+	DirectX::XMFLOAT3 LightColor{ 1.0f, 1.0f, 1.0f };
+	float LightRadius{ 0.0f };
+	float LightStrength{ 0.0f };
 };
 
 class cEffect
@@ -29,6 +34,7 @@ public:
 	bool IsActive() const;
 	int GetTextureID() const;
 	bool BuildInstance(SpriteInstance& out_instance) const;
+	bool BuildPointLight(SpritePointLight& out_light) const;
 
 private:
 	int GetCurrentFrame() const;

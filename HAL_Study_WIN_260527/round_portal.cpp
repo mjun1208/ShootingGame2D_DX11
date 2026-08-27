@@ -130,6 +130,7 @@ void RoundPortal::Draw() const
 		texture_x = frame * PORTAL_FRAME_WIDTH;
 	}
 
+	const bool lighting_was_enabled = Sprite_SetLightingEnabled(false);
 	Sprite_DrawRegion(
 		texture_id,
 		m_Position.x,
@@ -141,4 +142,5 @@ void RoundPortal::Draw() const
 		PORTAL_FRAME_WIDTH,
 		PORTAL_FRAME_HEIGHT,
 		{ 1.0f, 1.0f, 1.0f, 1.0f });
+	Sprite_SetLightingEnabled(lighting_was_enabled);
 }

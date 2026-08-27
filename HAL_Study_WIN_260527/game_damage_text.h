@@ -9,6 +9,13 @@ namespace GameDamageText
 	void Finalize();
 	void Clear();
 	void Spawn(float damage, const DirectX::XMFLOAT2& world_position);
+	void Spawn(
+		float damage,
+		const DirectX::XMFLOAT2& world_position,
+		const DirectX::XMFLOAT4& color);
+	void SpawnHealing(
+		float healing,
+		const DirectX::XMFLOAT2& world_position);
 	void Update(float delta_time);
 	void Draw();
 }

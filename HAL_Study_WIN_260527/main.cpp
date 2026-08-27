@@ -12,12 +12,13 @@
 #include <sstream>
 #include "keyboard.h"
 #include "mouse.h"
+#include "scene_manager.h"
 
 /*------------------------------------------------------------------------------
  ウィンドウ情報
 ------------------------------------------------------------------------------*/
 static constexpr char WINDOW_CLASS[] = "GameWindow"; // メインウィンドウクラス名
-static constexpr char TITLE[] = "HelloWorld"; // タイトルバーのテキスト
+static constexpr char TITLE[] = "Dungeon Survivor"; // タイトルバーのテキスト
 /*------------------------------------------------------------------------------
  ウィンドウプロシージャ プロトタイプ宣⾔
 ------------------------------------------------------------------------------*/
@@ -192,7 +193,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_KEYDOWN:
-		if (wParam == VK_ESCAPE)
+		if (wParam == VK_ESCAPE &&
+			SceneManager_GetCurrentSceneID() != SceneID::Ingame)
 		{
 			SendMessage(hWnd, WM_CLOSE, 0, 0); // WM_CLOSEメッセージの送信
 		}

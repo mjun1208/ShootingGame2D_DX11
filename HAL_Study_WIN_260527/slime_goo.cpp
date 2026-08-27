@@ -321,7 +321,7 @@ void cSlimeGoo::DrawBurst() const
 
 	if (!instances.empty())
 	{
-		SpriteInstanced_Draw(
+		SpriteInstanced_DrawUnlit(
 			m_TextureID,
 			instances.data(),
 			static_cast<int>(instances.size()));

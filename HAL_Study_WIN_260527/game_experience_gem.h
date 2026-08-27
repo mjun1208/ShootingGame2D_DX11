@@ -8,7 +8,11 @@ namespace GameExperienceGem
 	void Initialize();
 	void Finalize();
 	void Clear();
-	void Spawn(const DirectX::XMFLOAT2& world_position, int experience);
+	void Spawn(
+		const DirectX::XMFLOAT2& world_position,
+		int experience,
+		int room_index);
+	void AttractAllInRoom(int room_index);
 	void Update(float delta_time, const DirectX::XMFLOAT2& player_position);
 	void Draw();
 }

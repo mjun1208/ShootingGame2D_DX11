@@ -1,6 +1,8 @@
 #ifndef SPRITE_H
 #define SPRITE_H
 
+#include "sprite_lighting.h"
+
 #include <d3d11.h>
 #include <DirectXMath.h>
 
@@ -15,6 +17,7 @@ enum SpriteFilter
 void Sprite_SetFilter(SpriteFilter filter);
 void Sprite_SetViewMatrix(const DirectX::XMMATRIX& view_matrix);
 void Sprite_ResetViewMatrix();
+bool Sprite_SetLightingEnabled(bool enabled);
 
 void Sprite_Draw(
 	int texture_Id,

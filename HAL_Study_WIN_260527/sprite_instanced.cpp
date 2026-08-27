@@ -6,7 +6,6 @@
 #include "texture.h"
 
 #include <algorithm>
-#include <array>
 #include <cstddef>
 #include <fstream>
 #include <vector>
@@ -29,17 +28,6 @@ namespace
 		XMFLOAT4X4 ViewProjection;
 	};
 
-	struct LightConstants
-	{
-		XMFLOAT4 RadialLight{ 0.0f, 0.0f, 1.0f, 0.0f };
-		XMFLOAT4 LightLevels{ 1.0f, 1.0f, 1.0f, 0.0f };
-		XMFLOAT4 LightColor{ 1.0f, 1.0f, 1.0f, 0.0f };
-		XMFLOAT4 DirectLight{ 1.0f, 1.0f, 1.0f, 0.0f };
-		XMFLOAT4 PointLightMeta{ 0.0f, 0.0f, 0.0f, 0.0f };
-		std::array<XMFLOAT4, SPRITE_INSTANCED_POINT_LIGHT_CAPACITY> PointLights{};
-		std::array<XMFLOAT4, SPRITE_INSTANCED_POINT_LIGHT_CAPACITY> PointLightColors{};
-	};
-
 	ID3D11Buffer* g_VertexBuffer = nullptr;
 	ID3D11Buffer* g_InstanceBuffer = nullptr;
 	ID3D11Buffer* g_SceneConstantBuffer = nullptr;
@@ -49,6 +37,7 @@ namespace
 	ID3D11PixelShader* g_LightningPixelShader = nullptr;
 	ID3D11InputLayout* g_InputLayout = nullptr;
 	ID3D11SamplerState* g_SamplerState = nullptr;
+	ID3D11SamplerState* g_WrapUSamplerState = nullptr;
 	ID3D11SamplerState* g_LightningSamplerState = nullptr;
 	ID3D11BlendState* g_BlendState = nullptr;
 	ID3D11BlendState* g_AdditiveBlendState = nullptr;
@@ -56,8 +45,6 @@ namespace
 	ID3D11DepthStencilState* g_DepthStencilState = nullptr;
 	ID3D11RasterizerState* g_RasterizerState = nullptr;
 	XMFLOAT4X4 g_ViewMatrix{};
-	LightConstants g_LightConstants{};
-
 	bool LoadBinary(const char* path, std::vector<unsigned char>& bytes)
 	{
 		std::ifstream stream(path, std::ios::binary | std::ios::ate);
@@ -128,7 +115,7 @@ bool SpriteInstanced_Initialize()
 		SpriteInstanced_Finalize();
 		return false;
 	}
-	constant_desc.ByteWidth = sizeof(LightConstants);
+	constant_desc.ByteWidth = sizeof(SpriteLightConstants);
 	hr = device->CreateBuffer(&constant_desc, nullptr, &g_LightConstantBuffer);
 	if (FAILED(hr))
 	{
@@ -199,6 +186,15 @@ bool SpriteInstanced_Initialize()
 	sampler_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 	sampler_desc.MaxLOD = D3D11_FLOAT32_MAX;
 	hr = device->CreateSamplerState(&sampler_desc, &g_SamplerState);
+	if (FAILED(hr))
+	{
+		SpriteInstanced_Finalize();
+		return false;
+	}
+	D3D11_SAMPLER_DESC wrap_u_sampler_desc = sampler_desc;
+	wrap_u_sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	hr = device->CreateSamplerState(
+		&wrap_u_sampler_desc, &g_WrapUSamplerState);
 	if (FAILED(hr))
 	{
 		SpriteInstanced_Finalize();
@@ -283,93 +279,6 @@ void SpriteInstanced_SetViewMatrix(const XMMATRIX& view_matrix)
 	XMStoreFloat4x4(&g_ViewMatrix, view_matrix);
 }
 
-void SpriteInstanced_SetRadialLight(
-	const XMFLOAT2& screen_position,
-	float radius,
-	float ambient_brightness,
-	float peak_brightness,
-	float gamma,
-	const XMFLOAT3& color,
-	float color_strength)
-{
-	g_LightConstants.RadialLight = {
-		screen_position.x,
-		screen_position.y,
-		std::max(radius, 1.0f),
-		1.0f,
-	};
-	g_LightConstants.LightLevels = {
-		std::max(ambient_brightness, 0.0f),
-		std::max(peak_brightness, 0.0f),
-		std::max(gamma, 0.01f),
-		0.0f,
-	};
-	g_LightConstants.LightColor = {
-		std::max(color.x, 0.0f),
-		std::max(color.y, 0.0f),
-		std::max(color.z, 0.0f),
-		std::max(color_strength, 0.0f),
-	};
-}
-
-void SpriteInstanced_DisableRadialLight()
-{
-	g_LightConstants.RadialLight.w = 0.0f;
-}
-
-void SpriteInstanced_SetDirectLight(const XMFLOAT3& color, float strength)
-{
-	g_LightConstants.DirectLight = {
-		std::max(color.x, 0.0f),
-		std::max(color.y, 0.0f),
-		std::max(color.z, 0.0f),
-		std::max(strength, 0.0f),
-	};
-}
-
-void SpriteInstanced_DisableDirectLight()
-{
-	g_LightConstants.DirectLight.w = 0.0f;
-}
-
-void SpriteInstanced_SetPointLightsWorld(
-	const XMFLOAT2* world_positions,
-	int light_count,
-	float radius,
-	const XMFLOAT3& color,
-	float strength)
-{
-	const int clamped_count = world_positions ?
-		std::clamp(light_count, 0, SPRITE_INSTANCED_POINT_LIGHT_CAPACITY) : 0;
-	const XMMATRIX view = XMLoadFloat4x4(&g_ViewMatrix);
-	for (int i = 0; i < clamped_count; ++i)
-	{
-		const XMVECTOR world_position = XMVectorSet(
-			world_positions[i].x, world_positions[i].y, 0.0f, 1.0f);
-		const XMVECTOR screen_position = XMVector3TransformCoord(world_position, view);
-		XMFLOAT2 screen{};
-		XMStoreFloat2(&screen, screen_position);
-		g_LightConstants.PointLights[i] = {
-			screen.x,
-			screen.y,
-			std::max(radius, 1.0f),
-			std::max(strength, 0.0f),
-		};
-		g_LightConstants.PointLightColors[i] = {
-			std::max(color.x, 0.0f),
-			std::max(color.y, 0.0f),
-			std::max(color.z, 0.0f),
-			0.0f,
-		};
-	}
-	g_LightConstants.PointLightMeta.x = static_cast<float>(clamped_count);
-}
-
-void SpriteInstanced_DisablePointLights()
-{
-	g_LightConstants.PointLightMeta.x = 0.0f;
-}
-
 void SpriteInstanced_Finalize()
 {
 	SAFE_RELEASE(g_RasterizerState);
@@ -378,6 +287,7 @@ void SpriteInstanced_Finalize()
 	SAFE_RELEASE(g_AdditiveBlendState);
 	SAFE_RELEASE(g_BlendState);
 	SAFE_RELEASE(g_LightningSamplerState);
+	SAFE_RELEASE(g_WrapUSamplerState);
 	SAFE_RELEASE(g_SamplerState);
 	SAFE_RELEASE(g_InputLayout);
 	SAFE_RELEASE(g_LightningPixelShader);
@@ -395,7 +305,8 @@ static void SpriteInstanced_DrawWithBlend(
 	int instance_count,
 	ID3D11BlendState* blend_state,
 	ID3D11PixelShader* pixel_shader,
-	ID3D11SamplerState* sampler_state)
+	ID3D11SamplerState* sampler_state,
+	bool lighting_enabled)
 {
 	if (texture_id == TEXTURE_INVALID_ID || !instances || instance_count <= 0)
 	{
@@ -409,7 +320,10 @@ static void SpriteInstanced_DrawWithBlend(
 	SceneConstants constants{};
 	XMStoreFloat4x4(&constants.ViewProjection, XMMatrixTranspose(view * projection));
 	context->UpdateSubresource(g_SceneConstantBuffer, 0, nullptr, &constants, 0, 0);
-	context->UpdateSubresource(g_LightConstantBuffer, 0, nullptr, &g_LightConstants, 0, 0);
+	const SpriteLightConstants light_constants = SpriteLighting_BuildConstants(
+		g_ViewMatrix, lighting_enabled, true);
+	context->UpdateSubresource(
+		g_LightConstantBuffer, 0, nullptr, &light_constants, 0, 0);
 
 	context->VSSetShader(g_VertexShader, nullptr, 0);
 	context->PSSetShader(pixel_shader, nullptr, 0);
@@ -451,7 +365,71 @@ void SpriteInstanced_Draw(
 {
 	SpriteInstanced_DrawWithBlend(
 		texture_id, instances, instance_count, g_BlendState,
-		g_PixelShader, g_SamplerState);
+		g_PixelShader, g_SamplerState, true);
+}
+
+void SpriteInstanced_DrawUnlit(
+	int texture_id,
+	const SpriteInstance* instances,
+	int instance_count)
+{
+	SpriteInstanced_DrawWithBlend(
+		texture_id, instances, instance_count, g_BlendState,
+		g_PixelShader, g_SamplerState, false);
+}
+
+void SpriteInstanced_DrawOutlinedUnlit(
+	int texture_id,
+	const SpriteInstance* instances,
+	int instance_count,
+	const XMFLOAT4& outline_color,
+	float outline_thickness)
+{
+	if (texture_id == TEXTURE_INVALID_ID || !instances ||
+		instance_count <= 0 || outline_thickness <= 0.0f)
+	{
+		SpriteInstanced_DrawUnlit(texture_id, instances, instance_count);
+		return;
+	}
+
+	constexpr XMFLOAT2 OUTLINE_DIRECTIONS[] = {
+		{ -1.0f, -1.0f }, { 0.0f, -1.0f }, { 1.0f, -1.0f },
+		{ -1.0f,  0.0f },                  { 1.0f,  0.0f },
+		{ -1.0f,  1.0f }, { 0.0f,  1.0f }, { 1.0f,  1.0f },
+	};
+	static std::vector<SpriteInstance> outline_instances;
+	outline_instances.clear();
+	outline_instances.reserve(
+		static_cast<size_t>(instance_count) * ARRAYSIZE(OUTLINE_DIRECTIONS));
+
+	for (const XMFLOAT2& direction : OUTLINE_DIRECTIONS)
+	{
+		for (int i = 0; i < instance_count; ++i)
+		{
+			SpriteInstance outline = instances[i];
+			outline.Position.x += direction.x * outline_thickness;
+			outline.Position.y += direction.y * outline_thickness;
+			outline.Color = outline_color;
+			outline.ColorMask = 1.0f;
+			outline_instances.push_back(outline);
+		}
+	}
+
+	SpriteInstanced_DrawUnlit(
+		texture_id,
+		outline_instances.data(),
+		static_cast<int>(outline_instances.size()));
+	SpriteInstanced_DrawUnlit(texture_id, instances, instance_count);
+}
+
+void SpriteInstanced_DrawWrapUUnlit(
+	int texture_id,
+	const SpriteInstance* instances,
+	int instance_count)
+{
+	SpriteInstanced_DrawWithBlend(
+		texture_id, instances, instance_count, g_BlendState,
+		g_PixelShader, g_WrapUSamplerState, false);
 }
 
 void SpriteInstanced_DrawAdditive(
@@ -461,7 +439,17 @@ void SpriteInstanced_DrawAdditive(
 {
 	SpriteInstanced_DrawWithBlend(
 		texture_id, instances, instance_count, g_AdditiveBlendState,
-		g_PixelShader, g_SamplerState);
+		g_PixelShader, g_SamplerState, true);
+}
+
+void SpriteInstanced_DrawAdditiveUnlit(
+	int texture_id,
+	const SpriteInstance* instances,
+	int instance_count)
+{
+	SpriteInstanced_DrawWithBlend(
+		texture_id, instances, instance_count, g_AdditiveBlendState,
+		g_PixelShader, g_SamplerState, false);
 }
 
 void SpriteInstanced_DrawLightning(
@@ -471,5 +459,5 @@ void SpriteInstanced_DrawLightning(
 {
 	SpriteInstanced_DrawWithBlend(
 		texture_id, instances, instance_count, g_LightningBlendState,
-		g_LightningPixelShader, g_LightningSamplerState);
+		g_LightningPixelShader, g_LightningSamplerState, true);
 }

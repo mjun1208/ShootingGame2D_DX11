@@ -1,0 +1,6 @@
+FREE Cthulu character sprites by chierit
+Source: https://chierit.itch.io/free-cthulu
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+License text: https://creativecommons.org/licenses/by/4.0/
+
+The sprite sheet is used as the Round 4 boss asset in this project.

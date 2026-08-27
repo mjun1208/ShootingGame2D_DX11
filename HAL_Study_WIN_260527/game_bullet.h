@@ -7,8 +7,12 @@ enum class BulletType
 {
 	Fireball = 0,
 	Lightning,
-	Piercing,
-	All,
+	Ricochet,
+	BezierHoming,
+	OrbitBlade,
+	Boomerang,
+	Shotgun,
+	MagicBlade,
 	Count,
 };
 
@@ -16,9 +20,17 @@ namespace GameBullet
 {
 	void Initialize();
 	void Finalize();
-	void SetType(BulletType type);
-	BulletType GetType();
-	void Fire(const DirectX::XMFLOAT2& spawn_position, const DirectX::XMFLOAT2& direction);
+	bool UnlockRandomWeapon();
+	bool ConsumeUnlockedWeapon(BulletType& out_type);
+	bool IsWeaponOwned(BulletType type);
+	int GetWeaponTextureID(BulletType type);
+	void IncreaseProjectileCount(BulletType type);
+	void MultiplyAttackSpeed(BulletType type, float multiplier);
+	void MultiplyDamage(BulletType type, float multiplier);
+	void PlayFireballExplosionSound();
+	bool Fire(
+		const DirectX::XMFLOAT2& spawn_position,
+		const DirectX::XMFLOAT2& target_position);
 	void Update(float delta_time);
 	void Clear();
 	void Draw();

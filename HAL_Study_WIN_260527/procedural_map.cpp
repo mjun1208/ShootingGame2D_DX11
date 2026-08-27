@@ -1,5 +1,6 @@
 #include "procedural_map.h"
 
+#include "game_data_manager.h"
 #include "sprite.h"
 #include "sprite_instanced.h"
 #include "texture.h"
@@ -12,29 +13,21 @@
 #include <cstdint>
 #include <numeric>
 #include <queue>
+#include <string>
 #include <vector>
 
 using namespace DirectX;
 
 namespace
 {
-	constexpr int MAP_COLUMNS = 240;
-	constexpr int MAP_ROWS = 180;
-	constexpr int MAP_TILE_COUNT = MAP_COLUMNS * MAP_ROWS;
-	constexpr float MAP_TILE_SIZE = 60.0f;
-	constexpr int REGULAR_ROOM_MIN_COUNT = 3;
-	constexpr int REGULAR_ROOM_COUNT_VARIATION = 3;
-	constexpr int BOSS_ROUND_ROOM_COUNT = 2;
-	constexpr int BOSS_ROUND = 4;
-	constexpr int ROOM_TILE_WIDTH = 28;
-	constexpr int ROOM_TILE_HEIGHT = 22;
-	constexpr int ROOM_GRID_SPACING_X = 34;
-	constexpr int ROOM_GRID_SPACING_Y = 28;
-	constexpr int ROOM_GRID_MIN_X = -3;
-	constexpr int ROOM_GRID_MAX_X = 3;
+	constexpr int ROOM_GRID_MIN_X = -2;
+	constexpr int ROOM_GRID_MAX_X = 2;
 	constexpr int ROOM_GRID_MIN_Y = -2;
 	constexpr int ROOM_GRID_MAX_Y = 2;
 	constexpr int CORRIDOR_RADIUS = 2;
+	constexpr int ROOM_CONNECTION_LENGTH = 6;
+	constexpr int ROOM_COLLISION_PADDING = CORRIDOR_RADIUS + 1;
+	constexpr int ROOM_MAP_PADDING = 1;
 	constexpr float MINIMAP_VIEWPORT_FRACTION = 0.40f;
 	constexpr float WORLD_MAP_VIEWPORT_FRACTION = 0.80f;
 	constexpr float MINIMAP_MAX_WORLD_SCALE = 1.0f / 20.0f;
@@ -42,7 +35,10 @@ namespace
 	constexpr float MINIMAP_SCREEN_MARGIN = 20.0f;
 	constexpr float ENCOUNTER_BARRIER_THICKNESS = 14.0f;
 	constexpr float ENCOUNTER_BARRIER_ENDPOINT_EXTENSION = 4.0f;
-	constexpr float WALL_TORCH_CHANCE = 0.07f;
+	constexpr float WALL_DECOR_CHANCE = 0.07f;
+	constexpr float FLOOR_DECOR_CHANCE = 0.01f;
+	constexpr float FOREST_FLOOR_DECOR_CHANCE = 0.035f;
+	constexpr float TORCH_FRAME_TIME = 0.12f;
 	constexpr float PI = 3.14159265358979323846f;
 
 	enum class GroundTile : std::size_t
@@ -157,6 +153,7 @@ namespace
 		int ParentRoomIndex{ -1 };
 		int GridX{ 0 };
 		int GridY{ 0 };
+		RoomCandidate Bounds{};
 	};
 
 	struct Decoration
@@ -201,45 +198,71 @@ namespace
 	constexpr std::size_t DECOR_TILE_TYPE_COUNT = static_cast<std::size_t>(DecorTile::Count);
 	constexpr std::size_t ENCOUNTER_BARRIER_TILE_TYPE_COUNT =
 		static_cast<std::size_t>(EncounterBarrierTile::Count);
-	constexpr std::array<const wchar_t*, GROUND_TILE_TYPE_COUNT> GROUND_TEXTURE_PATHS = {
-		L"asset/texture/map/dungeon/room/top_left.png",
-		L"asset/texture/map/dungeon/room/top_01.png",
-		L"asset/texture/map/dungeon/room/top_02.png",
-		L"asset/texture/map/dungeon/room/top_03.png",
-		L"asset/texture/map/dungeon/room/top_04.png",
-		L"asset/texture/map/dungeon/room/top_right.png",
-		L"asset/texture/map/dungeon/room/left_01.png",
-		L"asset/texture/map/dungeon/room/left_02.png",
-		L"asset/texture/map/dungeon/room/left_03.png",
-		L"asset/texture/map/dungeon/room/floor_01.png",
-		L"asset/texture/map/dungeon/room/floor_02.png",
-		L"asset/texture/map/dungeon/room/floor_03.png",
-		L"asset/texture/map/dungeon/room/floor_04.png",
-		L"asset/texture/map/dungeon/room/floor_05.png",
-		L"asset/texture/map/dungeon/room/floor_06.png",
-		L"asset/texture/map/dungeon/room/floor_07.png",
-		L"asset/texture/map/dungeon/room/floor_08.png",
-		L"asset/texture/map/dungeon/room/floor_09.png",
-		L"asset/texture/map/dungeon/room/floor_10.png",
-		L"asset/texture/map/dungeon/room/floor_11.png",
-		L"asset/texture/map/dungeon/room/floor_12.png",
-		L"asset/texture/map/dungeon/room/right_01.png",
-		L"asset/texture/map/dungeon/room/right_02.png",
-		L"asset/texture/map/dungeon/room/right_03.png",
-		L"asset/texture/map/dungeon/room/bottom_left.png",
-		L"asset/texture/map/dungeon/room/bottom_01.png",
-		L"asset/texture/map/dungeon/room/bottom_02.png",
-		L"asset/texture/map/dungeon/room/bottom_03.png",
-		L"asset/texture/map/dungeon/room/bottom_04.png",
-		L"asset/texture/map/dungeon/room/bottom_right.png",
-		L"asset/texture/map/dungeon/room/concave_down_column_0.png",
-		L"asset/texture/map/dungeon/room/concave_down_column_3.png",
-		L"asset/texture/map/dungeon/room/void_deep.png",
-		L"asset/texture/map/dungeon/room/void_mottle.png",
+	constexpr std::size_t MAP_THEME_COUNT = 3;
+	constexpr std::array<const wchar_t*, MAP_THEME_COUNT> GROUND_TEXTURE_DIRECTORIES = {
+		L"asset/texture/map/dungeon/themes/forest/room/",
+		L"asset/texture/map/dungeon/themes/crypt/room/",
+		L"asset/texture/map/dungeon/room/",
+	};
+	constexpr std::array<const wchar_t*, GROUND_TILE_TYPE_COUNT> GROUND_TEXTURE_FILENAMES = {
+		L"top_left.png",
+		L"top_01.png",
+		L"top_02.png",
+		L"top_03.png",
+		L"top_04.png",
+		L"top_right.png",
+		L"left_01.png",
+		L"left_02.png",
+		L"left_03.png",
+		L"floor_01.png",
+		L"floor_02.png",
+		L"floor_03.png",
+		L"floor_04.png",
+		L"floor_05.png",
+		L"floor_06.png",
+		L"floor_07.png",
+		L"floor_08.png",
+		L"floor_09.png",
+		L"floor_10.png",
+		L"floor_11.png",
+		L"floor_12.png",
+		L"right_01.png",
+		L"right_02.png",
+		L"right_03.png",
+		L"bottom_left.png",
+		L"bottom_01.png",
+		L"bottom_02.png",
+		L"bottom_03.png",
+		L"bottom_04.png",
+		L"bottom_right.png",
+		L"concave_down_column_0.png",
+		L"concave_down_column_3.png",
+		L"void_deep.png",
+		L"void_mottle.png",
 	};
 
-	constexpr std::array<const wchar_t*, DECOR_TILE_TYPE_COUNT> DECOR_TEXTURE_PATHS = {
-		L"asset/texture/map/dungeon/decor/torch.png",
+	constexpr std::array<const wchar_t*, DECOR_TILE_TYPE_COUNT> FOREST_DECOR_TEXTURE_PATHS = {
+		L"asset/texture/map/dungeon/themes/forest/decor/torch.png",
+		L"asset/texture/map/dungeon/themes/forest/decor/candle.png",
+		L"asset/texture/map/dungeon/themes/forest/decor/coin.png",
+		L"asset/texture/map/dungeon/themes/forest/decor/pot_red.png",
+		L"asset/texture/map/dungeon/themes/forest/decor/pot_blue.png",
+		L"asset/texture/map/dungeon/themes/forest/decor/bones.png",
+		L"asset/texture/map/dungeon/themes/forest/decor/skull.png",
+		L"asset/texture/map/dungeon/themes/forest/decor/chest.png",
+	};
+	constexpr std::array<const wchar_t*, DECOR_TILE_TYPE_COUNT> CRYPT_DECOR_TEXTURE_PATHS = {
+		L"asset/texture/map/dungeon/themes/crypt/decor/torch.png",
+		L"asset/texture/map/dungeon/themes/crypt/decor/candle.png",
+		L"asset/texture/map/dungeon/themes/crypt/decor/coin.png",
+		L"asset/texture/map/dungeon/themes/crypt/decor/pot_red.png",
+		L"asset/texture/map/dungeon/themes/crypt/decor/pot_blue.png",
+		L"asset/texture/map/dungeon/themes/crypt/decor/bones.png",
+		L"asset/texture/map/dungeon/themes/crypt/decor/skull.png",
+		L"asset/texture/map/dungeon/themes/crypt/decor/chest.png",
+	};
+	constexpr std::array<const wchar_t*, DECOR_TILE_TYPE_COUNT> CURRENT_DECOR_TEXTURE_PATHS = {
+		L"asset/texture/map/dungeon/torch/torch_1.png",
 		L"asset/texture/map/dungeon/decor/candle.png",
 		L"asset/texture/map/dungeon/decor/coin.png",
 		L"asset/texture/map/dungeon/decor/pot_red.png",
@@ -247,6 +270,13 @@ namespace
 		L"asset/texture/map/dungeon/decor/bones.png",
 		L"asset/texture/map/dungeon/decor/skull.png",
 		L"asset/texture/map/dungeon/decor/chest.png",
+	};
+
+	constexpr std::array<const wchar_t*, 4> TORCH_TEXTURE_PATHS = {
+		L"asset/texture/map/dungeon/torch/torch_1.png",
+		L"asset/texture/map/dungeon/torch/torch_2.png",
+		L"asset/texture/map/dungeon/torch/torch_3.png",
+		L"asset/texture/map/dungeon/torch/torch_4.png",
 	};
 
 	constexpr std::array<const wchar_t*, ENCOUNTER_BARRIER_TILE_TYPE_COUNT>
@@ -257,12 +287,21 @@ namespace
 			L"asset/texture/map/dungeon/barrier/vertical_02.png",
 	};
 
-	std::array<int, GROUND_TILE_TYPE_COUNT> g_GroundTextureIds{};
-	std::array<int, DECOR_TILE_TYPE_COUNT> g_DecorTextureIds{};
+	constexpr std::array<std::array<const wchar_t*, DECOR_TILE_TYPE_COUNT>, MAP_THEME_COUNT>
+		DECOR_TEXTURE_PATHS = {
+		FOREST_DECOR_TEXTURE_PATHS,
+		CRYPT_DECOR_TEXTURE_PATHS,
+		CURRENT_DECOR_TEXTURE_PATHS,
+	};
+
+	std::array<std::array<int, GROUND_TILE_TYPE_COUNT>, MAP_THEME_COUNT> g_GroundTextureIds{};
+	std::array<std::array<int, DECOR_TILE_TYPE_COUNT>, MAP_THEME_COUNT> g_DecorTextureIds{};
+	std::array<int, TORCH_TEXTURE_PATHS.size()> g_TorchTextureIds{};
 	std::array<int, ENCOUNTER_BARRIER_TILE_TYPE_COUNT> g_EncounterBarrierTextureIds{};
 	std::array<std::vector<SpriteInstance>, GROUND_TILE_TYPE_COUNT> g_VisibleGroundBatches{};
 	std::array<std::vector<SpriteInstance>, DECOR_TILE_TYPE_COUNT> g_VisibleDecorBatches{};
-	std::array<std::vector<SpriteInstance>, GROUND_TILE_TYPE_COUNT> g_OverviewGroundBatches{};
+	int g_OverviewTextureId = TEXTURE_INVALID_ID;
+	std::vector<SpriteInstance> g_OverviewTiles;
 	std::vector<MapCell> g_Cells;
 	std::vector<DungeonRoom> g_Rooms;
 	std::vector<RoomEdge> g_Connections;
@@ -274,7 +313,36 @@ namespace
 	int g_FinalEncounterRoomIndex = 0;
 	int g_ExitRoomIndex = 0;
 	int g_LockedEncounterRoom = -1;
+	float g_TorchAnimationElapsed = 0.0f;
 	bool g_Initialized = false;
+
+	const MapGameData& GetMapData()
+	{
+		return GameDataManager::GetInstance().GetMapGameData();
+	}
+
+	MapTheme ActiveMapTheme()
+	{
+		return GetMapData().GetRoundEncounter(g_Round).Theme;
+	}
+
+	std::size_t ActiveMapThemeIndex()
+	{
+		switch (ActiveMapTheme())
+		{
+		case MapTheme::Forest: return 0;
+		case MapTheme::CryptDungeon: return 1;
+		default: return 2;
+		}
+	}
+
+	int MapColumns() { return GetMapData().GetMapColumns(); }
+	int MapRows() { return GetMapData().GetMapRows(); }
+	float MapTileSize() { return GetMapData().GetTileSize(); }
+	int RoomTileWidth() { return GetMapData().GetRoomTileWidth(); }
+	int RoomTileHeight() { return GetMapData().GetRoomTileHeight(); }
+	int LargeRoomTileWidth() { return GetMapData().GetLargeRoomTileWidth(); }
+	int LargeRoomTileHeight() { return GetMapData().GetLargeRoomTileHeight(); }
 
 	std::uint32_t Hash32(std::uint32_t value)
 	{
@@ -333,7 +401,12 @@ namespace
 
 	int ResolveGroundTexture(GroundTile tile)
 	{
-		return g_GroundTextureIds[ToIndex(tile)];
+		return g_GroundTextureIds[ActiveMapThemeIndex()][ToIndex(tile)];
+	}
+
+	int ResolveDecorTexture(DecorTile tile)
+	{
+		return g_DecorTextureIds[ActiveMapThemeIndex()][ToIndex(tile)];
 	}
 
 	bool IsDirectionalPath(GroundTile tile)
@@ -344,12 +417,12 @@ namespace
 
 	int CellIndex(int x, int y)
 	{
-		return y * MAP_COLUMNS + x;
+		return y * MapColumns() + x;
 	}
 
 	bool IsInsideMap(int x, int y)
 	{
-		return x >= 0 && x < MAP_COLUMNS && y >= 0 && y < MAP_ROWS;
+		return x >= 0 && x < MapColumns() && y >= 0 && y < MapRows();
 	}
 
 	bool IsWalkableCell(int x, int y)
@@ -507,8 +580,8 @@ namespace
 	XMFLOAT2 CellCenter(int x, int y)
 	{
 		return {
-			(static_cast<float>(x) + 0.5f) * MAP_TILE_SIZE,
-			(static_cast<float>(y) + 0.5f) * MAP_TILE_SIZE,
+			(static_cast<float>(x) + 0.5f) * MapTileSize(),
+			(static_cast<float>(y) + 0.5f) * MapTileSize(),
 		};
 	}
 
@@ -518,11 +591,11 @@ namespace
 		int corridor_y,
 		float collision_world_y)
 	{
-		const float left = first_x * MAP_TILE_SIZE - ENCOUNTER_BARRIER_ENDPOINT_EXTENSION;
-		const float right = (last_x + 1) * MAP_TILE_SIZE + ENCOUNTER_BARRIER_ENDPOINT_EXTENSION;
+		const float left = first_x * MapTileSize() - ENCOUNTER_BARRIER_ENDPOINT_EXTENSION;
+		const float right = (last_x + 1) * MapTileSize() + ENCOUNTER_BARRIER_ENDPOINT_EXTENSION;
 		g_EncounterBarriers.push_back({
 			{ (left + right) * 0.5f, collision_world_y },
-			{ (left + right) * 0.5f, (static_cast<float>(corridor_y) + 0.5f) * MAP_TILE_SIZE },
+			{ (left + right) * 0.5f, (static_cast<float>(corridor_y) + 0.5f) * MapTileSize() },
 			{ right - left, ENCOUNTER_BARRIER_THICKNESS },
 			EncounterBarrierStyle::Horizontal,
 		});
@@ -534,11 +607,11 @@ namespace
 		int corridor_x,
 		float collision_world_x)
 	{
-		const float top = first_y * MAP_TILE_SIZE - ENCOUNTER_BARRIER_ENDPOINT_EXTENSION;
-		const float bottom = (last_y + 1) * MAP_TILE_SIZE + ENCOUNTER_BARRIER_ENDPOINT_EXTENSION;
+		const float top = first_y * MapTileSize() - ENCOUNTER_BARRIER_ENDPOINT_EXTENSION;
+		const float bottom = (last_y + 1) * MapTileSize() + ENCOUNTER_BARRIER_ENDPOINT_EXTENSION;
 		g_EncounterBarriers.push_back({
 			{ collision_world_x, (top + bottom) * 0.5f },
-			{ (static_cast<float>(corridor_x) + 0.5f) * MAP_TILE_SIZE, (top + bottom) * 0.5f },
+			{ (static_cast<float>(corridor_x) + 0.5f) * MapTileSize(), (top + bottom) * 0.5f },
 			{ ENCOUNTER_BARRIER_THICKNESS, bottom - top },
 			EncounterBarrierStyle::Vertical,
 		});
@@ -600,9 +673,17 @@ namespace
 
 	void ResetTextureIds()
 	{
-		g_GroundTextureIds.fill(TEXTURE_INVALID_ID);
-		g_DecorTextureIds.fill(TEXTURE_INVALID_ID);
+		for (auto& texture_ids : g_GroundTextureIds)
+		{
+			texture_ids.fill(TEXTURE_INVALID_ID);
+		}
+		for (auto& texture_ids : g_DecorTextureIds)
+		{
+			texture_ids.fill(TEXTURE_INVALID_ID);
+		}
+		g_TorchTextureIds.fill(TEXTURE_INVALID_ID);
 		g_EncounterBarrierTextureIds.fill(TEXTURE_INVALID_ID);
+		g_OverviewTextureId = TEXTURE_INVALID_ID;
 	}
 
 	template <std::size_t Count>
@@ -653,15 +734,164 @@ namespace
 		return -1;
 	}
 
-	RoomCandidate MakeRoomCandidate(int grid_x, int grid_y)
+	RoomCandidate MakeCenteredRoomCandidate(int tile_width, int tile_height)
 	{
-		const int center_x = MAP_COLUMNS / 2 + grid_x * ROOM_GRID_SPACING_X;
-		const int center_y = MAP_ROWS / 2 + grid_y * ROOM_GRID_SPACING_Y;
 		return {
-			center_x - ROOM_TILE_WIDTH / 2,
-			center_y - ROOM_TILE_HEIGHT / 2,
-			ROOM_TILE_WIDTH,
-			ROOM_TILE_HEIGHT,
+			MapColumns() / 2 - tile_width / 2,
+			MapRows() / 2 - tile_height / 2,
+			tile_width,
+			tile_height,
+		};
+	}
+
+	template <std::size_t ThemeCount, std::size_t TextureCount>
+	bool LoadThemeTextureSets(
+		const std::array<std::array<const wchar_t*, TextureCount>, ThemeCount>& paths,
+		std::array<std::array<int, TextureCount>, ThemeCount>& texture_ids)
+	{
+		for (std::size_t theme_index = 0; theme_index < ThemeCount; ++theme_index)
+		{
+			if (!LoadTextureSet(paths[theme_index], texture_ids[theme_index]))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	template <std::size_t ThemeCount, std::size_t TextureCount>
+	bool LoadThemeTextureSets(
+		const std::array<const wchar_t*, ThemeCount>& directories,
+		const std::array<const wchar_t*, TextureCount>& filenames,
+		std::array<std::array<int, TextureCount>, ThemeCount>& texture_ids)
+	{
+		for (std::size_t theme_index = 0; theme_index < ThemeCount; ++theme_index)
+		{
+			for (std::size_t texture_index = 0;
+				texture_index < TextureCount; ++texture_index)
+			{
+				const std::wstring path =
+					std::wstring(directories[theme_index]) + filenames[texture_index];
+				texture_ids[theme_index][texture_index] = Texture_Load(path.c_str(), false);
+				if (texture_ids[theme_index][texture_index] == TEXTURE_INVALID_ID)
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	template <std::size_t ThemeCount, std::size_t TextureCount>
+	void ReleaseThemeTextureSets(
+		std::array<std::array<int, TextureCount>, ThemeCount>& texture_ids)
+	{
+		for (auto& theme_texture_ids : texture_ids)
+		{
+			ReleaseTextureSet(theme_texture_ids);
+		}
+	}
+
+	RoomCandidate MakeConnectedRoomCandidate(
+		const ProceduralMapRoom& parent,
+		int direction_x,
+		int direction_y,
+		int tile_width,
+		int tile_height)
+	{
+		const int parent_center_x = parent.TileX + parent.TileWidth / 2;
+		const int parent_center_y = parent.TileY + parent.TileHeight / 2;
+		if (direction_x > 0)
+		{
+			return {
+				parent.TileX + parent.TileWidth + ROOM_CONNECTION_LENGTH,
+				parent_center_y - tile_height / 2,
+				tile_width,
+				tile_height,
+			};
+		}
+		if (direction_x < 0)
+		{
+			return {
+				parent.TileX - ROOM_CONNECTION_LENGTH - tile_width,
+				parent_center_y - tile_height / 2,
+				tile_width,
+				tile_height,
+			};
+		}
+		if (direction_y > 0)
+		{
+			return {
+				parent_center_x - tile_width / 2,
+				parent.TileY + parent.TileHeight + ROOM_CONNECTION_LENGTH,
+				tile_width,
+				tile_height,
+			};
+		}
+		return {
+			parent_center_x - tile_width / 2,
+			parent.TileY - ROOM_CONNECTION_LENGTH - tile_height,
+			tile_width,
+			tile_height,
+		};
+	}
+
+	bool IsRoomCandidateInsideMap(const RoomCandidate& candidate)
+	{
+		return candidate.X >= ROOM_MAP_PADDING &&
+			candidate.Y >= ROOM_MAP_PADDING &&
+			candidate.X + candidate.Width <= MapColumns() - ROOM_MAP_PADDING &&
+			candidate.Y + candidate.Height <= MapRows() - ROOM_MAP_PADDING;
+	}
+
+	bool RoomCandidateOverlapsExistingRoom(
+		const RoomCandidate& candidate,
+		int ignored_room_index = -1)
+	{
+		for (const DungeonRoom& room : g_Rooms)
+		{
+			if (room.Info.Index == ignored_room_index)
+			{
+				continue;
+			}
+			const bool separated =
+				candidate.X + candidate.Width + ROOM_COLLISION_PADDING <= room.Info.TileX ||
+				room.Info.TileX + room.Info.TileWidth + ROOM_COLLISION_PADDING <= candidate.X ||
+				candidate.Y + candidate.Height + ROOM_COLLISION_PADDING <= room.Info.TileY ||
+				room.Info.TileY + room.Info.TileHeight + ROOM_COLLISION_PADDING <= candidate.Y;
+			if (!separated)
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	bool IsValidRoomCandidate(
+		const RoomCandidate& candidate,
+		int parent_room_index)
+	{
+		return IsRoomCandidateInsideMap(candidate) &&
+			!RoomCandidateOverlapsExistingRoom(candidate, parent_room_index);
+	}
+
+	void ApplyRoomBounds(DungeonRoom& room, const RoomCandidate& candidate)
+	{
+		room.Info.TileX = candidate.X;
+		room.Info.TileY = candidate.Y;
+		room.Info.TileWidth = candidate.Width;
+		room.Info.TileHeight = candidate.Height;
+		room.Info.WorldMin = {
+			candidate.X * MapTileSize(),
+			candidate.Y * MapTileSize(),
+		};
+		room.Info.WorldMax = {
+			(candidate.X + candidate.Width) * MapTileSize(),
+			(candidate.Y + candidate.Height) * MapTileSize(),
+		};
+		room.Info.Center = {
+			(room.Info.WorldMin.x + room.Info.WorldMax.x) * 0.5f,
+			(room.Info.WorldMin.y + room.Info.WorldMax.y) * 0.5f,
 		};
 	}
 
@@ -673,22 +903,7 @@ namespace
 	{
 		DungeonRoom room{};
 		room.Info.Index = static_cast<int>(g_Rooms.size());
-		room.Info.TileX = candidate.X;
-		room.Info.TileY = candidate.Y;
-		room.Info.TileWidth = candidate.Width;
-		room.Info.TileHeight = candidate.Height;
-		room.Info.WorldMin = {
-			candidate.X * MAP_TILE_SIZE,
-			candidate.Y * MAP_TILE_SIZE,
-		};
-		room.Info.WorldMax = {
-			(candidate.X + candidate.Width) * MAP_TILE_SIZE,
-			(candidate.Y + candidate.Height) * MAP_TILE_SIZE,
-		};
-		room.Info.Center = {
-			(room.Info.WorldMin.x + room.Info.WorldMax.x) * 0.5f,
-			(room.Info.WorldMin.y + room.Info.WorldMax.y) * 0.5f,
-		};
+		ApplyRoomBounds(room, candidate);
 		room.GridX = grid_x;
 		room.GridY = grid_y;
 		room.ParentRoomIndex = parent_room_index;
@@ -701,10 +916,58 @@ namespace
 	{
 		g_Rooms.clear();
 		SeededRandom random(Hash32(g_MapSeed ^ 0x51ed270bu));
-		const int target_count = g_Round == BOSS_ROUND ? BOSS_ROUND_ROOM_COUNT :
-			REGULAR_ROOM_MIN_COUNT + random.Range(0, REGULAR_ROOM_COUNT_VARIATION);
+		const MapGameData& map_data = GetMapData();
+		const bool is_boss_round = g_Round == map_data.GetBossRound();
+		if (is_boss_round)
+		{
+			// Start below two large encounters, then finish at the boss arena.
+			constexpr int LARGE_ENCOUNTER_COUNT = 2;
+			constexpr int NORTH_ARENA_COUNT = LARGE_ENCOUNTER_COUNT + 1;
+			constexpr int UP_GRID_X = 0;
+			constexpr int UP_GRID_Y = -1;
+			const int layout_height = RoomTileHeight() +
+				NORTH_ARENA_COUNT * (ROOM_CONNECTION_LENGTH + LargeRoomTileHeight());
+			const int layout_top = (MapRows() - layout_height) / 2;
+			const RoomCandidate start_bounds = {
+				MapColumns() / 2 - RoomTileWidth() / 2,
+				layout_top + layout_height - RoomTileHeight(),
+				RoomTileWidth(),
+				RoomTileHeight(),
+			};
+			AddRoom(start_bounds, 0, 1, -1);
+			g_Rooms.front().FloorVariant = 0;
 
-		AddRoom(MakeRoomCandidate(0, 0), 0, 0, -1);
+			for (int arena_index = 0; arena_index < NORTH_ARENA_COUNT; ++arena_index)
+			{
+				const int parent_index = static_cast<int>(g_Rooms.size()) - 1;
+				const RoomCandidate arena_bounds = MakeConnectedRoomCandidate(
+					g_Rooms[parent_index].Info,
+					UP_GRID_X,
+					UP_GRID_Y,
+					LargeRoomTileWidth(),
+					LargeRoomTileHeight());
+				AddRoom(
+					arena_bounds,
+					UP_GRID_X,
+					-arena_index,
+					parent_index);
+				DungeonRoom& arena = g_Rooms.back();
+				arena.Info.IsLargeRoom = true;
+				arena.Info.IsBossRoom = arena_index == NORTH_ARENA_COUNT - 1;
+				arena.FloorVariant = 1;
+			}
+			return;
+		}
+
+		const int target_count = random.Range(
+			map_data.GetRegularRoomMinCount(),
+			map_data.GetRegularRoomMaxCount() + 1);
+
+		AddRoom(
+			MakeCenteredRoomCandidate(RoomTileWidth(), RoomTileHeight()),
+			0,
+			0,
+			-1);
 		g_Rooms.front().FloorVariant = 0;
 
 		constexpr std::array<std::array<int, 2>, 4> DIRECTIONS = { {
@@ -712,6 +975,12 @@ namespace
 		} };
 		while (static_cast<int>(g_Rooms.size()) < target_count)
 		{
+			const bool next_room_is_large =
+				static_cast<int>(g_Rooms.size()) == target_count - 1;
+			const int child_width = next_room_is_large ?
+				LargeRoomTileWidth() : RoomTileWidth();
+			const int child_height = next_room_is_large ?
+				LargeRoomTileHeight() : RoomTileHeight();
 			std::vector<RoomExpansionCandidate> expansion_candidates;
 			expansion_candidates.reserve(g_Rooms.size() * DIRECTIONS.size());
 			for (int parent_index = 0;
@@ -723,10 +992,22 @@ namespace
 				{
 					const int grid_x = parent.GridX + direction[0];
 					const int grid_y = parent.GridY + direction[1];
+					const RoomCandidate bounds = MakeConnectedRoomCandidate(
+						parent.Info,
+						direction[0],
+						direction[1],
+						child_width,
+						child_height);
 					if (IsInsideRoomGrid(grid_x, grid_y) &&
-						FindRoomAtGrid(grid_x, grid_y) < 0)
+						FindRoomAtGrid(grid_x, grid_y) < 0 &&
+						IsValidRoomCandidate(bounds, parent_index))
 					{
-						expansion_candidates.push_back({ parent_index, grid_x, grid_y });
+						expansion_candidates.push_back({
+							parent_index,
+							grid_x,
+							grid_y,
+							bounds,
+						});
 					}
 				}
 			}
@@ -739,10 +1020,15 @@ namespace
 			const RoomExpansionCandidate& expansion = expansion_candidates[
 				random.Range(0, static_cast<int>(expansion_candidates.size()))];
 			AddRoom(
-				MakeRoomCandidate(expansion.GridX, expansion.GridY),
+				expansion.Bounds,
 				expansion.GridX,
 				expansion.GridY,
 				expansion.ParentRoomIndex);
+			if (next_room_is_large)
+			{
+				g_Rooms.back().Info.IsLargeRoom = true;
+				g_Rooms.back().FloorVariant = 1;
+			}
 		}
 	}
 
@@ -779,17 +1065,11 @@ namespace
 			{
 				continue;
 			}
-			const DungeonRoom& parent = g_Rooms[parent_index];
-			const int grid_distance =
-				std::abs(room.GridX - parent.GridX) + std::abs(room.GridY - parent.GridY);
-			if (grid_distance == 1)
-			{
-				AddConnection(parent_index, room_index);
-			}
+			AddConnection(parent_index, room_index);
 		}
 	}
 
-	bool HasAvailableRoomNeighbor(const DungeonRoom& room)
+	bool HasAvailableBossRoomNeighbor(const DungeonRoom& room)
 	{
 		constexpr std::array<std::array<int, 2>, 4> DIRECTIONS = { {
 			{ 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 },
@@ -798,7 +1078,15 @@ namespace
 		{
 			const int grid_x = room.GridX + direction[0];
 			const int grid_y = room.GridY + direction[1];
-			if (IsInsideRoomGrid(grid_x, grid_y) && FindRoomAtGrid(grid_x, grid_y) < 0)
+			const RoomCandidate bounds = MakeConnectedRoomCandidate(
+				room.Info,
+				direction[0],
+				direction[1],
+				LargeRoomTileWidth(),
+				LargeRoomTileHeight());
+			if (IsInsideRoomGrid(grid_x, grid_y) &&
+				FindRoomAtGrid(grid_x, grid_y) < 0 &&
+				IsValidRoomCandidate(bounds, room.Info.Index))
 			{
 				return true;
 			}
@@ -848,11 +1136,14 @@ namespace
 		int exit_room = g_StartRoomIndex;
 		int exit_depth = 0;
 		std::uint32_t exit_tie_breaker = 0;
+		const bool needs_appended_boss_room =
+			g_Round != GetMapData().GetBossRound();
 		for (int room_index = 0; room_index < static_cast<int>(g_Rooms.size()); ++room_index)
 		{
 			const DungeonRoom& room = g_Rooms[room_index];
 			if (room_index == g_StartRoomIndex || room.Info.Depth < 0 ||
-				room.Neighbors.size() != 1 || !HasAvailableRoomNeighbor(room))
+				room.Neighbors.size() != 1 ||
+				(needs_appended_boss_room && !HasAvailableBossRoomNeighbor(room)))
 			{
 				continue;
 			}
@@ -872,7 +1163,8 @@ namespace
 			{
 				const ProceduralMapRoom& room = g_Rooms[room_index].Info;
 				if (room_index != g_StartRoomIndex && room.Depth > exit_depth &&
-					HasAvailableRoomNeighbor(g_Rooms[room_index]))
+					(!needs_appended_boss_room ||
+						HasAvailableBossRoomNeighbor(g_Rooms[room_index])))
 				{
 					exit_room = room_index;
 					exit_depth = room.Depth;
@@ -880,14 +1172,21 @@ namespace
 			}
 		}
 		g_FinalEncounterRoomIndex = exit_room;
-		if (g_Round == BOSS_ROUND && g_FinalEncounterRoomIndex >= 0)
+		if (g_FinalEncounterRoomIndex >= 0)
 		{
-			g_Rooms[g_FinalEncounterRoomIndex].Info.IsBossRoom = true;
-			g_Rooms[g_FinalEncounterRoomIndex].FloorVariant = 1;
+			DungeonRoom& final_room = g_Rooms[g_FinalEncounterRoomIndex];
+			const bool is_immediate_boss_room =
+				g_Round == GetMapData().GetBossRound();
+			if (is_immediate_boss_room)
+			{
+				final_room.Info.IsLargeRoom = true;
+			}
+			final_room.Info.IsBossRoom = is_immediate_boss_room;
+			final_room.FloorVariant = 1;
 		}
 	}
 
-	void AddPortalRoom()
+	void AddBossRoom()
 	{
 		g_ExitRoomIndex = g_FinalEncounterRoomIndex;
 		if (g_FinalEncounterRoomIndex < 0 ||
@@ -909,22 +1208,38 @@ namespace
 				(first_direction + offset) % static_cast<int>(DIRECTIONS.size())];
 			const int grid_x = parent.GridX + direction[0];
 			const int grid_y = parent.GridY + direction[1];
-			if (!IsInsideRoomGrid(grid_x, grid_y) || FindRoomAtGrid(grid_x, grid_y) >= 0)
+			const RoomCandidate bounds = MakeConnectedRoomCandidate(
+				parent.Info,
+				direction[0],
+				direction[1],
+				LargeRoomTileWidth(),
+				LargeRoomTileHeight());
+			if (!IsInsideRoomGrid(grid_x, grid_y) ||
+				FindRoomAtGrid(grid_x, grid_y) >= 0 ||
+				!IsValidRoomCandidate(bounds, g_FinalEncounterRoomIndex))
 			{
 				continue;
 			}
 
 			AddRoom(
-				MakeRoomCandidate(grid_x, grid_y),
+				bounds,
 				grid_x,
 				grid_y,
 				g_FinalEncounterRoomIndex);
-			DungeonRoom& portal_room = g_Rooms.back();
-			portal_room.Info.IsPortalRoom = true;
-			portal_room.FloorVariant = 1;
-			g_ExitRoomIndex = portal_room.Info.Index;
+			DungeonRoom& boss_room = g_Rooms.back();
+			boss_room.Info.IsLargeRoom = true;
+			boss_room.Info.IsBossRoom = true;
+			boss_room.FloorVariant = 1;
+			g_FinalEncounterRoomIndex = boss_room.Info.Index;
+			g_ExitRoomIndex = boss_room.Info.Index;
 			return;
 		}
+
+		// The selected final regular room normally reserves a free neighbor. If a
+		// future map layout leaves no slot, keep the round completable by turning
+		// that room into the boss arena.
+		DungeonRoom& fallback_boss_room = g_Rooms[g_FinalEncounterRoomIndex];
+		fallback_boss_room.Info.IsBossRoom = true;
 	}
 
 	void CarveRoom(const DungeonRoom& room)
@@ -986,7 +1301,7 @@ namespace
 
 	void CarveDungeon()
 	{
-		g_Cells.assign(MAP_TILE_COUNT, MapCell{});
+		g_Cells.assign(MapColumns() * MapRows(), MapCell{});
 		for (const DungeonRoom& room : g_Rooms)
 		{
 			CarveRoom(room);
@@ -1002,13 +1317,95 @@ namespace
 			const int by = room_b.TileY + room_b.TileHeight / 2;
 			if (ay == by)
 			{
-				CarveHorizontal(ax, bx, ay);
+				const int corridor_start_x = ax < bx ?
+					room_a.TileX + room_a.TileWidth :
+					room_b.TileX + room_b.TileWidth;
+				const int corridor_end_x = ax < bx ?
+					room_b.TileX - 1 : room_a.TileX - 1;
+				CarveHorizontal(corridor_start_x, corridor_end_x, ay);
 			}
 			else if (ax == bx)
 			{
-				CarveVertical(ax, ay, by);
+				const int corridor_start_y = ay < by ?
+					room_a.TileY + room_a.TileHeight :
+					room_b.TileY + room_b.TileHeight;
+				const int corridor_end_y = ay < by ?
+					room_b.TileY - 1 : room_a.TileY - 1;
+				CarveVertical(ax, corridor_start_y, corridor_end_y);
 			}
 		}
+	}
+
+	bool IsCellPartOfConnection(int x, int y, const RoomEdge& edge)
+	{
+		if (edge.A < 0 || edge.B < 0 ||
+			edge.A >= static_cast<int>(g_Rooms.size()) ||
+			edge.B >= static_cast<int>(g_Rooms.size()))
+		{
+			return false;
+		}
+
+		const ProceduralMapRoom& room_a = g_Rooms[edge.A].Info;
+		const ProceduralMapRoom& room_b = g_Rooms[edge.B].Info;
+		const int ax = room_a.TileX + room_a.TileWidth / 2;
+		const int ay = room_a.TileY + room_a.TileHeight / 2;
+		const int bx = room_b.TileX + room_b.TileWidth / 2;
+		const int by = room_b.TileY + room_b.TileHeight / 2;
+
+		if (ay == by)
+		{
+			const int corridor_start_x = ax < bx ?
+				room_a.TileX + room_a.TileWidth :
+				room_b.TileX + room_b.TileWidth;
+			const int corridor_end_x = ax < bx ?
+				room_b.TileX - 1 : room_a.TileX - 1;
+			return x >= corridor_start_x && x <= corridor_end_x &&
+				std::abs(y - ay) <= CORRIDOR_RADIUS;
+		}
+		if (ax == bx)
+		{
+			const int corridor_start_y = ay < by ?
+				room_a.TileY + room_a.TileHeight :
+				room_b.TileY + room_b.TileHeight;
+			const int corridor_end_y = ay < by ?
+				room_b.TileY - 1 : room_a.TileY - 1;
+			return y >= corridor_start_y && y <= corridor_end_y &&
+				std::abs(x - ax) <= CORRIDOR_RADIUS;
+		}
+		return false;
+	}
+
+	bool IsOverviewCellVisible(
+		int x,
+		int y,
+		const MapCell& cell,
+		ProceduralMapRoomVisibilityPredicate is_room_visible,
+		ProceduralMapRoomVisibilityPredicate is_room_cleared)
+	{
+		if (!is_room_visible)
+		{
+			return true;
+		}
+		if (cell.Kind == CellKind::Room)
+		{
+			return cell.RoomIndex >= 0 && is_room_visible(cell.RoomIndex);
+		}
+		if (cell.Kind != CellKind::Corridor)
+		{
+			return false;
+		}
+
+		const ProceduralMapRoomVisibilityPredicate reveals_corridor =
+			is_room_cleared ? is_room_cleared : is_room_visible;
+		for (const RoomEdge& edge : g_Connections)
+		{
+			if ((reveals_corridor(edge.A) || reveals_corridor(edge.B)) &&
+				IsCellPartOfConnection(x, y, edge))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	GroundTile ChooseRoomGround(const DungeonRoom& room, int x, int y, float detail)
@@ -1056,9 +1453,9 @@ namespace
 
 	void AssignGroundMaterials()
 	{
-		for (int y = 0; y < MAP_ROWS; ++y)
+		for (int y = 0; y < MapRows(); ++y)
 		{
-			for (int x = 0; x < MAP_COLUMNS; ++x)
+			for (int x = 0; x < MapColumns(); ++x)
 			{
 				MapCell& cell = g_Cells[CellIndex(x, y)];
 				const float detail = HashToUnitFloat(CellHash(x, y, 0x7f4a7c15u));
@@ -1104,7 +1501,7 @@ namespace
 		bool allow_rotation,
 		bool allow_jitter = true)
 	{
-		const int texture_id = g_DecorTextureIds[ToIndex(tile)];
+		const int texture_id = ResolveDecorTexture(tile);
 		const float texture_width = static_cast<float>(Texture_GetWidth(texture_id));
 		const float texture_height = static_cast<float>(Texture_GetHeight(texture_id));
 		if (texture_width <= 0.0f || texture_height <= 0.0f)
@@ -1113,9 +1510,9 @@ namespace
 		}
 
 		const float jitter_x = allow_jitter ?
-			(HashToUnitFloat(CellHash(cell_x, cell_y, 0x6d2b79f5u)) - 0.5f) * MAP_TILE_SIZE * 0.28f : 0.0f;
+			(HashToUnitFloat(CellHash(cell_x, cell_y, 0x6d2b79f5u)) - 0.5f) * MapTileSize() * 0.28f : 0.0f;
 		const float jitter_y = allow_jitter ?
-			(HashToUnitFloat(CellHash(cell_x, cell_y, 0x9e3779b9u)) - 0.5f) * MAP_TILE_SIZE * 0.24f : 0.0f;
+			(HashToUnitFloat(CellHash(cell_x, cell_y, 0x9e3779b9u)) - 0.5f) * MapTileSize() * 0.24f : 0.0f;
 		const float brightness = 0.92f +
 			HashToUnitFloat(CellHash(cell_x, cell_y, 0x27d4eb2fu)) * 0.08f;
 		const float rotation = allow_rotation &&
@@ -1127,10 +1524,10 @@ namespace
 			cell_y,
 			{
 				{
-					(static_cast<float>(cell_x) + 0.5f) * MAP_TILE_SIZE + jitter_x,
-					(static_cast<float>(cell_y) + 0.5f) * MAP_TILE_SIZE + jitter_y,
+					(static_cast<float>(cell_x) + 0.5f) * MapTileSize() + jitter_x,
+					(static_cast<float>(cell_y) + 0.5f) * MapTileSize() + jitter_y,
 				},
-				{ MAP_TILE_SIZE * scale, MAP_TILE_SIZE * scale },
+				{ MapTileSize() * scale, MapTileSize() * scale },
 				rotation,
 				{ brightness, brightness, brightness, 1.0f },
 			},
@@ -1142,44 +1539,40 @@ namespace
 		g_Decorations.clear();
 		g_Decorations.reserve(1200);
 
-		int boss_room_index = -1;
-		for (const DungeonRoom& room : g_Rooms)
+		for (int y = 0; y < MapRows(); ++y)
 		{
-			if (room.Info.IsBossRoom)
+			for (int x = 0; x < MapColumns(); ++x)
 			{
-				boss_room_index = room.Info.Index;
-				break;
-			}
-		}
-
-		for (int y = 0; y < MAP_ROWS; ++y)
-		{
-			for (int x = 0; x < MAP_COLUMNS; ++x)
-			{
+				const bool is_forest = ActiveMapTheme() == MapTheme::Forest;
 				const MapCell& cell = g_Cells[CellIndex(x, y)];
 				const float roll = HashToUnitFloat(CellHash(x, y, 0x94d049bbu));
 				const float scale = 0.86f +
 					HashToUnitFloat(CellHash(x, y, 0xed5ad4bbu)) * 0.20f;
+				const std::uint32_t decor_hash = CellHash(x, y, 0xa511e9b3u);
+				const DecorTile floor_decor = is_forest ?
+					static_cast<DecorTile>(1 + decor_hash % (DECOR_TILE_TYPE_COUNT - 1)) :
+					(HashToUnitFloat(decor_hash) < 0.5f ?
+						DecorTile::Bones : DecorTile::Skull);
+				const float floor_decor_chance = is_forest ?
+					FOREST_FLOOR_DECOR_CHANCE : FLOOR_DECOR_CHANCE;
 
 				if (cell.Kind == CellKind::Solid && IsTopWallGround(cell.Ground))
 				{
-					if (roll < WALL_TORCH_CHANCE)
+					if (roll < WALL_DECOR_CHANCE)
 					{
 						AddDecoration(DecorTile::Torch, x, y, 1.0f, false, false);
-						g_Decorations.back().Instance.Color = { 1.08f, 1.0f, 0.90f, 1.0f };
+						g_Decorations.back().Instance.Color = is_forest ?
+							XMFLOAT4{ 1.0f, 1.04f, 0.98f, 1.0f } :
+							XMFLOAT4{ 1.08f, 1.0f, 0.90f, 1.0f };
 					}
 					continue;
 				}
 
 				if (cell.Kind == CellKind::Corridor)
 				{
-					if (roll < 0.006f)
+					if (roll < floor_decor_chance)
 					{
-						AddDecoration(DecorTile::Bones, x, y, scale * 0.62f, true);
-					}
-					else if (roll < 0.010f)
-					{
-						AddDecoration(DecorTile::Candle, x, y, scale * 0.68f, false);
+						AddDecoration(floor_decor, x, y, scale * 0.72f, false);
 					}
 					continue;
 				}
@@ -1193,36 +1586,14 @@ namespace
 				const int center_x = room.Info.TileX + room.Info.TileWidth / 2;
 				const int center_y = room.Info.TileY + room.Info.TileHeight / 2;
 				const int distance_from_center = std::abs(x - center_x) + std::abs(y - center_y);
-				if (room.Info.Index == boss_room_index && x == center_x && y == center_y)
-				{
-					AddDecoration(DecorTile::Chest, x, y, 0.95f, false, false);
-					g_Decorations.back().Instance.Position = room.Info.Center;
-					continue;
-				}
 				if (distance_from_center <= 5)
 				{
 					continue;
 				}
 
-				if (room.FloorVariant == 0)
+				if (roll < floor_decor_chance)
 				{
-					if (roll < 0.004f)
-					{
-						AddDecoration(DecorTile::PotRed, x, y, scale * 0.74f, false);
-					}
-					else if (roll < 0.008f)
-					{
-						AddDecoration(DecorTile::Coin, x, y, scale * 0.64f, false);
-					}
-				}
-				else if (room.FloorVariant == 2 && roll < 0.010f)
-				{
-					AddDecoration(roll < 0.005f ? DecorTile::Skull : DecorTile::Bones,
-						x, y, scale * 0.78f, false);
-				}
-				else if (room.FloorVariant == 1 && roll < 0.008f)
-				{
-					AddDecoration(DecorTile::PotBlue, x, y, scale * 0.70f, true);
+					AddDecoration(floor_decor, x, y, scale * 0.78f, false);
 				}
 			}
 		}
@@ -1239,15 +1610,15 @@ namespace
 		GenerateRooms();
 		BuildRoomConnections();
 		ComputeRoomDepths(true);
-		if (g_Round == BOSS_ROUND)
+		if (g_Round == GetMapData().GetBossRound())
 		{
-			// Boss rounds use the boss arena itself as the exit room. The portal
-			// appears at its center only after the boss encounter is cleared.
+			// The final round starts with only the spawn room and its boss arena.
 			g_ExitRoomIndex = g_FinalEncounterRoomIndex;
 		}
 		else
 		{
-			AddPortalRoom();
+			// Earlier rounds append a distinct boss arena after all regular rooms.
+			AddBossRoom();
 		}
 		BuildRoomConnections();
 		ComputeRoomDepths(false);
@@ -1258,10 +1629,10 @@ namespace
 
 	bool CircleIntersectsSolidCell(const XMFLOAT2& position, float radius, int cell_x, int cell_y)
 	{
-		const float left = cell_x * MAP_TILE_SIZE;
-		const float top = cell_y * MAP_TILE_SIZE;
-		const float right = left + MAP_TILE_SIZE;
-		const float bottom = top + MAP_TILE_SIZE;
+		const float left = cell_x * MapTileSize();
+		const float top = cell_y * MapTileSize();
+		const float right = left + MapTileSize();
+		const float bottom = top + MapTileSize();
 		const float closest_x = std::clamp(position.x, left, right);
 		const float closest_y = std::clamp(position.y, top, bottom);
 		const float dx = position.x - closest_x;
@@ -1307,13 +1678,22 @@ bool ProceduralMap_Initialize(std::uint32_t seed)
 	}
 
 	ResetTextureIds();
-	if (!LoadTextureSet(GROUND_TEXTURE_PATHS, g_GroundTextureIds) ||
-		!LoadTextureSet(DECOR_TEXTURE_PATHS, g_DecorTextureIds) ||
+	g_OverviewTextureId = Texture_Load(L"asset/texture/white_square.png", false);
+	if (g_OverviewTextureId == TEXTURE_INVALID_ID ||
+		!LoadThemeTextureSets(
+			GROUND_TEXTURE_DIRECTORIES,
+			GROUND_TEXTURE_FILENAMES,
+			g_GroundTextureIds) ||
+		!LoadThemeTextureSets(DECOR_TEXTURE_PATHS, g_DecorTextureIds) ||
+		!LoadTextureSet(TORCH_TEXTURE_PATHS, g_TorchTextureIds) ||
 		!LoadTextureSet(ENCOUNTER_BARRIER_TEXTURE_PATHS, g_EncounterBarrierTextureIds))
 	{
 		ReleaseTextureSet(g_EncounterBarrierTextureIds);
-		ReleaseTextureSet(g_DecorTextureIds);
-		ReleaseTextureSet(g_GroundTextureIds);
+		ReleaseTextureSet(g_TorchTextureIds);
+		ReleaseThemeTextureSets(g_DecorTextureIds);
+		ReleaseThemeTextureSets(g_GroundTextureIds);
+		Texture_Release(g_OverviewTextureId);
+		g_OverviewTextureId = TEXTURE_INVALID_ID;
 		return false;
 	}
 
@@ -1325,13 +1705,11 @@ bool ProceduralMap_Initialize(std::uint32_t seed)
 	{
 		batch.reserve(128);
 	}
-	for (auto& batch : g_OverviewGroundBatches)
-	{
-		batch.reserve(4096);
-	}
+	g_OverviewTiles.reserve(4096);
 	g_EncounterBarriers.reserve(16);
 
 	g_Round = 1;
+	g_TorchAnimationElapsed = 0.0f;
 	g_Initialized = true;
 	GenerateMap(seed == 0 ? MakeInitialSeed() : seed);
 	return true;
@@ -1346,6 +1724,7 @@ void ProceduralMap_Finalize()
 		g_LockedEncounterRoom = -1;
 		g_MapSeed = 0;
 		g_Round = 1;
+		g_TorchAnimationElapsed = 0.0f;
 		g_FinalEncounterRoomIndex = 0;
 		g_ExitRoomIndex = 0;
 		return;
@@ -1359,25 +1738,40 @@ void ProceduralMap_Finalize()
 	{
 		batch.clear();
 	}
-	for (auto& batch : g_OverviewGroundBatches)
-	{
-		batch.clear();
-	}
+	g_OverviewTiles.clear();
 	g_Decorations.clear();
 	g_EncounterBarriers.clear();
 	g_Connections.clear();
 	g_Rooms.clear();
 	g_Cells.clear();
 	ReleaseTextureSet(g_EncounterBarrierTextureIds);
-	ReleaseTextureSet(g_DecorTextureIds);
-	ReleaseTextureSet(g_GroundTextureIds);
+	ReleaseTextureSet(g_TorchTextureIds);
+	ReleaseThemeTextureSets(g_DecorTextureIds);
+	ReleaseThemeTextureSets(g_GroundTextureIds);
+	Texture_Release(g_OverviewTextureId);
+	g_OverviewTextureId = TEXTURE_INVALID_ID;
 	g_MapSeed = 0;
 	g_StartRoomIndex = 0;
 	g_FinalEncounterRoomIndex = 0;
 	g_ExitRoomIndex = 0;
 	g_LockedEncounterRoom = -1;
 	g_Round = 1;
+	g_TorchAnimationElapsed = 0.0f;
 	g_Initialized = false;
+}
+
+void ProceduralMap_Update(float delta_time)
+{
+	if (!g_Initialized)
+	{
+		return;
+	}
+
+	const float animation_duration =
+		TORCH_FRAME_TIME * static_cast<float>(TORCH_TEXTURE_PATHS.size());
+	g_TorchAnimationElapsed = std::fmod(
+		g_TorchAnimationElapsed + std::max(delta_time, 0.0f),
+		animation_duration);
 }
 
 void ProceduralMap_Regenerate(std::uint32_t seed)
@@ -1397,7 +1791,7 @@ void ProceduralMap_GenerateRound(int round, std::uint32_t seed)
 	{
 		return;
 	}
-	round = std::clamp(round, 1, BOSS_ROUND);
+	round = std::clamp(round, 1, GetMapData().GetTotalRoundCount());
 
 	const std::uint32_t round_salt =
 		static_cast<std::uint32_t>(round) * 0xc2b2ae35u;
@@ -1426,33 +1820,34 @@ void ProceduralMap_Draw(const XMFLOAT2& camera_position, const XMFLOAT2& viewpor
 	const float half_width = std::max(viewport_size.x, 1.0f) * 0.5f;
 	const float half_height = std::max(viewport_size.y, 1.0f) * 0.5f;
 	const int minimum_x = std::clamp(
-		static_cast<int>(std::floor((camera_position.x - half_width) / MAP_TILE_SIZE)) - 1,
-		0, MAP_COLUMNS - 1);
+		static_cast<int>(std::floor((camera_position.x - half_width) / MapTileSize())) - 1,
+		0, MapColumns() - 1);
 	const int maximum_x = std::clamp(
-		static_cast<int>(std::floor((camera_position.x + half_width) / MAP_TILE_SIZE)) + 1,
-		0, MAP_COLUMNS - 1);
+		static_cast<int>(std::floor((camera_position.x + half_width) / MapTileSize())) + 1,
+		0, MapColumns() - 1);
 	const int minimum_y = std::clamp(
-		static_cast<int>(std::floor((camera_position.y - half_height) / MAP_TILE_SIZE)) - 1,
-		0, MAP_ROWS - 1);
+		static_cast<int>(std::floor((camera_position.y - half_height) / MapTileSize())) - 1,
+		0, MapRows() - 1);
 	const int maximum_y = std::clamp(
-		static_cast<int>(std::floor((camera_position.y + half_height) / MAP_TILE_SIZE)) + 1,
-		0, MAP_ROWS - 1);
+		static_cast<int>(std::floor((camera_position.y + half_height) / MapTileSize())) + 1,
+		0, MapRows() - 1);
 
 	for (int y = minimum_y; y <= maximum_y; ++y)
 	{
 		for (int x = minimum_x; x <= maximum_x; ++x)
 		{
 			const MapCell& cell = g_Cells[CellIndex(x, y)];
-			g_VisibleGroundBatches[ToIndex(cell.Ground)].push_back({
+			const SpriteInstance instance = {
 				CellCenter(x, y),
-				{ MAP_TILE_SIZE, MAP_TILE_SIZE },
+				{ MapTileSize(), MapTileSize() },
 				cell.Rotation,
 				{ cell.Brightness, cell.Brightness, cell.Brightness, 1.0f },
-			});
+			};
+			g_VisibleGroundBatches[ToIndex(cell.Ground)].push_back(instance);
 		}
 	}
 
-	const float decor_margin = MAP_TILE_SIZE * 2.0f;
+	const float decor_margin = MapTileSize() * 2.0f;
 	const float visible_left = camera_position.x - half_width - decor_margin;
 	const float visible_right = camera_position.x + half_width + decor_margin;
 	const float visible_top = camera_position.y - half_height - decor_margin;
@@ -1484,9 +1879,97 @@ void ProceduralMap_Draw(const XMFLOAT2& camera_position, const XMFLOAT2& viewpor
 		const auto& batch = g_VisibleDecorBatches[i];
 		if (!batch.empty())
 		{
-			SpriteInstanced_Draw(g_DecorTextureIds[i], batch.data(), static_cast<int>(batch.size()));
+			int texture_id = g_DecorTextureIds[ActiveMapThemeIndex()][i];
+			if (i == ToIndex(DecorTile::Torch) &&
+				ActiveMapTheme() == MapTheme::CurrentDungeon)
+			{
+				const std::size_t frame = std::min(
+					static_cast<std::size_t>(g_TorchAnimationElapsed / TORCH_FRAME_TIME),
+					g_TorchTextureIds.size() - 1);
+				texture_id = g_TorchTextureIds[frame];
+			}
+			SpriteInstanced_Draw(texture_id, batch.data(), static_cast<int>(batch.size()));
 		}
 	}
+}
+
+int ProceduralMap_AppendTorchLights(
+	SpritePointLight* lights,
+	int light_count,
+	int capacity,
+	const XMFLOAT2& camera_position,
+	const XMFLOAT2& viewport_size)
+{
+	if (!g_Initialized || !lights || capacity <= 0)
+	{
+		return 0;
+	}
+
+	light_count = std::clamp(light_count, 0, capacity);
+	if (ActiveMapTheme() == MapTheme::Forest)
+	{
+		return light_count;
+	}
+	const int available_slots = capacity - light_count;
+	if (available_slots <= 0)
+	{
+		return light_count;
+	}
+
+	struct TorchCandidate
+	{
+		float DistanceSquared{ 0.0f };
+		XMFLOAT2 Position{};
+	};
+	static std::vector<TorchCandidate> candidates;
+	candidates.clear();
+	if (candidates.capacity() < 64)
+	{
+		candidates.reserve(64);
+	}
+	const float visibility_radius = std::sqrt(
+		viewport_size.x * viewport_size.x +
+		viewport_size.y * viewport_size.y) * 0.62f + 280.0f;
+	const float visibility_radius_squared =
+		visibility_radius * visibility_radius;
+	for (const Decoration& decoration : g_Decorations)
+	{
+		if (decoration.Tile != DecorTile::Torch)
+		{
+			continue;
+		}
+
+		const XMFLOAT2& position = decoration.Instance.Position;
+		const float dx = position.x - camera_position.x;
+		const float dy = position.y - camera_position.y;
+		const float distance_squared = dx * dx + dy * dy;
+		if (distance_squared <= visibility_radius_squared)
+		{
+			candidates.push_back({ distance_squared, position });
+		}
+	}
+	std::sort(candidates.begin(), candidates.end(),
+		[](const TorchCandidate& left, const TorchCandidate& right)
+		{
+			return left.DistanceSquared < right.DistanceSquared;
+		});
+
+	const int torch_count = std::min(
+		available_slots, static_cast<int>(candidates.size()));
+	for (int i = 0; i < torch_count; ++i)
+	{
+		const XMFLOAT2& position = candidates[i].Position;
+		const float flicker = 0.55f + 0.06f * std::sin(
+			g_TorchAnimationElapsed * 19.0f +
+			position.x * 0.011f + position.y * 0.017f);
+		lights[light_count++] = {
+			position,
+			255.0f,
+			flicker,
+			{ 1.0f, 0.46f, 0.14f },
+		};
+	}
+	return light_count;
 }
 
 void ProceduralMap_DrawFadeOverlay(const XMFLOAT2& viewport_size, float alpha)
@@ -1525,19 +2008,19 @@ void ProceduralMap_DrawEncounterLock()
 		const bool horizontal = barrier.Style == EncounterBarrierStyle::Horizontal;
 		const float visual_length = horizontal ? barrier.Size.x : barrier.Size.y;
 		const int segment_count = std::max(1, static_cast<int>(std::lround(
-			(visual_length - ENCOUNTER_BARRIER_ENDPOINT_EXTENSION * 2.0f) / MAP_TILE_SIZE)));
-		const float first_offset = -0.5f * static_cast<float>(segment_count - 1) * MAP_TILE_SIZE;
+			(visual_length - ENCOUNTER_BARRIER_ENDPOINT_EXTENSION * 2.0f) / MapTileSize())));
+		const float first_offset = -0.5f * static_cast<float>(segment_count - 1) * MapTileSize();
 		const std::size_t style_offset = static_cast<std::size_t>(barrier.Style) * 2;
 		for (int segment = 0; segment < segment_count; ++segment)
 		{
-			const float offset = first_offset + static_cast<float>(segment) * MAP_TILE_SIZE;
+			const float offset = first_offset + static_cast<float>(segment) * MapTileSize();
 			const std::size_t tile_index = style_offset + static_cast<std::size_t>(segment & 1);
 			barrier_batches[tile_index].push_back({
 				{
 					barrier.VisualCenter.x + (horizontal ? offset : 0.0f),
 					barrier.VisualCenter.y + (horizontal ? 0.0f : offset),
 				},
-				{ MAP_TILE_SIZE, MAP_TILE_SIZE },
+				{ MapTileSize(), MapTileSize() },
 				0.0f,
 				{ 1.0f, 1.0f, 1.0f, 1.0f },
 			});
@@ -1558,9 +2041,10 @@ void ProceduralMap_DrawEncounterLock()
 }
 
 ProceduralMapOverviewLayout ProceduralMap_DrawOverview(
-	const XMFLOAT2& camera_position,
 	const XMFLOAT2& viewport_size,
-	bool expanded)
+	bool expanded,
+	ProceduralMapRoomVisibilityPredicate is_room_visible,
+	ProceduralMapRoomVisibilityPredicate is_room_cleared)
 {
 	ProceduralMapOverviewLayout layout{};
 	if (!g_Initialized)
@@ -1584,16 +2068,17 @@ ProceduralMapOverviewLayout ProceduralMap_DrawOverview(
 	};
 	layout.IsExpanded = expanded;
 	const float frame_padding = expanded ? 14.0f : 8.0f;
+	XMFLOAT2 panel_origin{};
 	if (expanded)
 	{
-		layout.Origin = {
+		panel_origin = {
 			(viewport_size.x - layout.Size.x) * 0.5f,
 			(viewport_size.y - layout.Size.y) * 0.5f,
 		};
 	}
 	else
 	{
-		layout.Origin = {
+		panel_origin = {
 			viewport_size.x - layout.Size.x - MINIMAP_SCREEN_MARGIN - frame_padding,
 			MINIMAP_SCREEN_MARGIN + frame_padding,
 		};
@@ -1602,176 +2087,70 @@ ProceduralMapOverviewLayout ProceduralMap_DrawOverview(
 	Sprite_ResetViewMatrix();
 	SpriteInstanced_SetViewMatrix(XMMatrixIdentity());
 	const XMFLOAT2 panel_center = {
-		layout.Origin.x + layout.Size.x * 0.5f,
-		layout.Origin.y + layout.Size.y * 0.5f,
+		panel_origin.x + layout.Size.x * 0.5f,
+		panel_origin.y + layout.Size.y * 0.5f,
+	};
+	XMFLOAT2 overview_center_world = {
+		world_size.x * 0.5f,
+		world_size.y * 0.5f,
+	};
+	if (g_StartRoomIndex >= 0 &&
+		g_StartRoomIndex < static_cast<int>(g_Rooms.size()))
+	{
+		overview_center_world = g_Rooms[g_StartRoomIndex].Info.Center;
+	}
+	layout.Origin = {
+		panel_center.x - overview_center_world.x * layout.WorldScale,
+		panel_center.y - overview_center_world.y * layout.WorldScale,
 	};
 	if (expanded)
 	{
 		Sprite_DrawSized(
-			ResolveGroundTexture(GroundTile::VoidDeep),
+			g_OverviewTextureId,
 			viewport_size.x * 0.5f,
 			viewport_size.y * 0.5f,
 			viewport_size.x,
 			viewport_size.y,
-			{ 0.58f, 0.64f, 0.70f, 0.84f });
+			{ 0.0f, 0.0f, 0.0f, 0.72f });
 	}
 	Sprite_DrawSized(
-		ResolveGroundTexture(GroundTile::Floor01),
+		g_OverviewTextureId,
 		panel_center.x,
 		panel_center.y,
 		layout.Size.x + frame_padding * 2.0f,
 		layout.Size.y + frame_padding * 2.0f,
-		{ 0.22f, 0.25f, 0.20f, 0.96f });
-	Sprite_DrawSized(
-		ResolveGroundTexture(GroundTile::VoidDeep),
-		panel_center.x,
-		panel_center.y,
-		layout.Size.x,
-		layout.Size.y,
-		{ 0.70f, 0.76f, 0.82f, 0.97f });
+		{ 0.02f, 0.03f, 0.04f, 0.82f });
 
-	for (auto& batch : g_OverviewGroundBatches)
+	g_OverviewTiles.clear();
+	const float overview_tile_size = MapTileSize() * layout.WorldScale;
+	for (int y = 0; y < MapRows(); ++y)
 	{
-		batch.clear();
-	}
-	const float overview_tile_size = MAP_TILE_SIZE * layout.WorldScale;
-	for (int y = 0; y < MAP_ROWS; ++y)
-	{
-		for (int x = 0; x < MAP_COLUMNS; ++x)
+		for (int x = 0; x < MapColumns(); ++x)
 		{
 			const MapCell& cell = g_Cells[CellIndex(x, y)];
-			if (cell.Kind == CellKind::Solid && IsVoidGround(cell.Ground))
+			if (cell.Kind == CellKind::Solid ||
+				!IsOverviewCellVisible(
+					x, y, cell, is_room_visible, is_room_cleared))
 			{
 				continue;
 			}
-			const float brightness = cell.Kind == CellKind::Solid ?
-				0.82f : std::min(cell.Brightness + 0.08f, 1.0f);
-			g_OverviewGroundBatches[ToIndex(cell.Ground)].push_back({
+			g_OverviewTiles.push_back({
 				{
 					layout.Origin.x + (static_cast<float>(x) + 0.5f) * overview_tile_size,
 					layout.Origin.y + (static_cast<float>(y) + 0.5f) * overview_tile_size,
 				},
 				{ overview_tile_size, overview_tile_size },
-				cell.Rotation,
-				{ brightness, brightness, brightness, 0.98f },
-			});
-		}
-	}
-	for (std::size_t i = 0; i < GROUND_TILE_TYPE_COUNT; ++i)
-	{
-		const auto& batch = g_OverviewGroundBatches[i];
-		if (!batch.empty())
-		{
-			SpriteInstanced_Draw(
-				ResolveGroundTexture(static_cast<GroundTile>(i)),
-				batch.data(),
-				static_cast<int>(batch.size()));
-		}
-	}
-
-	if (!g_EncounterBarriers.empty())
-	{
-		static std::vector<SpriteInstance> overview_barriers;
-		overview_barriers.clear();
-		overview_barriers.reserve(g_EncounterBarriers.size());
-		const float minimum_thickness = expanded ? 3.0f : 2.0f;
-		for (const EncounterBarrier& barrier : g_EncounterBarriers)
-		{
-			overview_barriers.push_back({
-				{
-					layout.Origin.x + barrier.Center.x * layout.WorldScale,
-					layout.Origin.y + barrier.Center.y * layout.WorldScale,
-				},
-				{
-					std::max(barrier.Size.x * layout.WorldScale, minimum_thickness),
-					std::max(barrier.Size.y * layout.WorldScale, minimum_thickness),
-				},
 				0.0f,
-				{ 1.0f, 0.34f, 0.10f, 1.0f },
+				{ 0.62f, 0.66f, 0.70f, 0.95f },
 			});
 		}
+	}
+	if (!g_OverviewTiles.empty())
+	{
 		SpriteInstanced_Draw(
-			ResolveGroundTexture(GroundTile::Floor06),
-			overview_barriers.data(),
-			static_cast<int>(overview_barriers.size()));
-	}
-
-	const float camera_border_thickness = expanded ? 3.0f : 2.0f;
-	const XMFLOAT2 camera_center = {
-		layout.Origin.x + camera_position.x * layout.WorldScale,
-		layout.Origin.y + camera_position.y * layout.WorldScale,
-	};
-	const XMFLOAT2 camera_size = {
-		viewport_size.x * layout.WorldScale,
-		viewport_size.y * layout.WorldScale,
-	};
-	const std::array<SpriteInstance, 4> camera_border = { {
-		{
-			{ camera_center.x, camera_center.y - camera_size.y * 0.5f },
-			{ camera_size.x, camera_border_thickness },
-			0.0f,
-			{ 0.55f, 0.92f, 1.0f, 0.95f },
-		},
-		{
-			{ camera_center.x, camera_center.y + camera_size.y * 0.5f },
-			{ camera_size.x, camera_border_thickness },
-			0.0f,
-			{ 0.55f, 0.92f, 1.0f, 0.95f },
-		},
-		{
-			{ camera_center.x - camera_size.x * 0.5f, camera_center.y },
-			{ camera_border_thickness, camera_size.y },
-			0.0f,
-			{ 0.55f, 0.92f, 1.0f, 0.95f },
-		},
-		{
-			{ camera_center.x + camera_size.x * 0.5f, camera_center.y },
-			{ camera_border_thickness, camera_size.y },
-			0.0f,
-			{ 0.55f, 0.92f, 1.0f, 0.95f },
-		},
-	} };
-	SpriteInstanced_Draw(
-		ResolveGroundTexture(GroundTile::Floor12),
-		camera_border.data(),
-		static_cast<int>(camera_border.size()));
-
-	if (expanded)
-	{
-		const ProceduralMapRoom* start_room = ProceduralMap_GetRoom(g_StartRoomIndex);
-		const ProceduralMapRoom* exit_room = ProceduralMap_GetRoom(g_ExitRoomIndex);
-		if (start_room)
-		{
-			const SpriteInstance marker = {
-				{
-					layout.Origin.x + start_room->Center.x * layout.WorldScale,
-					layout.Origin.y + start_room->Center.y * layout.WorldScale,
-				},
-				{ 18.0f, 18.0f },
-				0.0f,
-				{ 0.62f, 0.92f, 1.0f, 1.0f },
-			};
-			SpriteInstanced_Draw(
-				g_DecorTextureIds[ToIndex(DecorTile::Coin)],
-				&marker,
-				1);
-		}
-		if (exit_room)
-		{
-			const SpriteInstance marker = {
-				{
-					layout.Origin.x + exit_room->Center.x * layout.WorldScale,
-					layout.Origin.y + exit_room->Center.y * layout.WorldScale,
-				},
-				{ 24.0f, 24.0f },
-				0.0f,
-				{ 1.0f, 0.48f, 0.32f, 1.0f },
-			};
-			SpriteInstanced_Draw(
-				g_DecorTextureIds[ToIndex(DecorTile::Chest)],
-				&marker,
-				1);
-		}
+			g_OverviewTextureId,
+			g_OverviewTiles.data(),
+			static_cast<int>(g_OverviewTiles.size()));
 	}
 
 	return layout;
@@ -1789,14 +2168,14 @@ int ProceduralMap_GetRound()
 
 bool ProceduralMap_IsBossRound()
 {
-	return g_Round == BOSS_ROUND;
+	return g_Round == GetMapData().GetBossRound();
 }
 
 XMFLOAT2 ProceduralMap_GetWorldSize()
 {
 	return {
-		MAP_COLUMNS * MAP_TILE_SIZE,
-		MAP_ROWS * MAP_TILE_SIZE,
+		MapColumns() * MapTileSize(),
+		MapRows() * MapTileSize(),
 	};
 }
 
@@ -1805,7 +2184,7 @@ XMFLOAT2 ProceduralMap_GetPlayerSpawnPosition()
 	if (g_Rooms.empty() || g_StartRoomIndex < 0 ||
 		g_StartRoomIndex >= static_cast<int>(g_Rooms.size()))
 	{
-		return { MAP_TILE_SIZE, MAP_TILE_SIZE };
+		return { MapTileSize(), MapTileSize() };
 	}
 	return g_Rooms[g_StartRoomIndex].Info.Center;
 }
@@ -1868,13 +2247,13 @@ bool ProceduralMap_IsCircleWalkable(const XMFLOAT2& position, float radius)
 	}
 
 	const int minimum_x = std::clamp(
-		static_cast<int>(std::floor((position.x - radius) / MAP_TILE_SIZE)), 0, MAP_COLUMNS - 1);
+		static_cast<int>(std::floor((position.x - radius) / MapTileSize())), 0, MapColumns() - 1);
 	const int maximum_x = std::clamp(
-		static_cast<int>(std::floor((position.x + radius) / MAP_TILE_SIZE)), 0, MAP_COLUMNS - 1);
+		static_cast<int>(std::floor((position.x + radius) / MapTileSize())), 0, MapColumns() - 1);
 	const int minimum_y = std::clamp(
-		static_cast<int>(std::floor((position.y - radius) / MAP_TILE_SIZE)), 0, MAP_ROWS - 1);
+		static_cast<int>(std::floor((position.y - radius) / MapTileSize())), 0, MapRows() - 1);
 	const int maximum_y = std::clamp(
-		static_cast<int>(std::floor((position.y + radius) / MAP_TILE_SIZE)), 0, MAP_ROWS - 1);
+		static_cast<int>(std::floor((position.y + radius) / MapTileSize())), 0, MapRows() - 1);
 
 	for (int y = minimum_y; y <= maximum_y; ++y)
 	{
@@ -2026,8 +2405,8 @@ int ProceduralMap_GetRoomIndexAt(const XMFLOAT2& world_position)
 	{
 		return -1;
 	}
-	const int cell_x = static_cast<int>(std::floor(world_position.x / MAP_TILE_SIZE));
-	const int cell_y = static_cast<int>(std::floor(world_position.y / MAP_TILE_SIZE));
+	const int cell_x = static_cast<int>(std::floor(world_position.x / MapTileSize()));
+	const int cell_y = static_cast<int>(std::floor(world_position.y / MapTileSize()));
 	if (!IsInsideMap(cell_x, cell_y))
 	{
 		return -1;

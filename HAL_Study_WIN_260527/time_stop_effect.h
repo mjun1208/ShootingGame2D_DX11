@@ -20,5 +20,6 @@ void TimeStopEffect_Trigger(const DirectX::XMFLOAT2& screen_position);
 void TimeStopEffect_Update(float delta_time);
 void TimeStopEffect_Cancel();
 bool TimeStopEffect_IsActive();
+bool TimeStopEffect_IsRestoring();
 
 #endif // TIME_STOP_EFFECT_H

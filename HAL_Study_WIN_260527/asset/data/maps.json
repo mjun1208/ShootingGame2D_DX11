@@ -1,0 +1,72 @@
+{
+  "map": {
+    "sizeInTiles": [180, 136],
+    "tileSize": 60.0,
+    "roomSizeInTiles": [18, 12],
+    "largeRoomSizeInTiles": [36, 22],
+    "roomGridSpacing": [36, 28],
+    "totalRounds": 4,
+    "bossRound": 4,
+    "regularRoomCount": [3, 5],
+    "bossRoomCount": 2
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "mapTheme": "forest",
+      "enemyCount": [10, 12],
+      "waveCount": [1, 1],
+      "largeRoomWaveCount": 2,
+      "largeRoomEnemyBonus": 21,
+      "allowedMonsters": ["slime", "skeleton_base", "bat"]
+    },
+    {
+      "round": 2,
+      "mapTheme": "crypt_dungeon",
+      "enemyCount": [6, 9],
+      "waveCount": [1, 2],
+      "largeRoomWaveCount": 2,
+      "largeRoomEnemyBonus": 30,
+      "allowedMonsters": [
+        "skeleton_base",
+        "skeleton_mage",
+        "skeleton_rogue",
+        "skeleton_warrior"
+      ]
+    },
+    {
+      "round": 3,
+      "mapTheme": "current_dungeon",
+      "enemyCount": [9, 13],
+      "waveCount": [2, 3],
+      "largeRoomWaveCount": 3,
+      "largeRoomEnemyBonus": 45,
+      "allowedMonsters": [
+        "orc",
+        "orc_rogue",
+        "orc_shaman",
+        "orc_warrior"
+      ]
+    },
+    {
+      "round": 4,
+      "mapTheme": "current_dungeon",
+      "enemyCount": [4, 6],
+      "waveCount": [2, 3],
+      "largeRoomWaveCount": 2,
+      "largeRoomEnemyBonus": 55,
+      "allowedMonsters": [
+        "slime",
+        "skeleton_base",
+        "skeleton_mage",
+        "skeleton_rogue",
+        "skeleton_warrior",
+        "bat",
+        "orc",
+        "orc_rogue",
+        "orc_shaman",
+        "orc_warrior"
+      ]
+    }
+  ]
+}

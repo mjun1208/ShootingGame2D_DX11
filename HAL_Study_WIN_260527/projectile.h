@@ -17,6 +17,15 @@ enum class ProjectileHitBehavior : std::uint8_t
 	Area,
 	ChainLightning,
 	Pierce,
+	PersistentPierce,
+};
+
+enum class ProjectileMotionBehavior : std::uint8_t
+{
+	Linear,
+	Boomerang,
+	OrbitOwner,
+	MagicBlade,
 };
 
 struct cProjectileDesc
@@ -36,6 +45,22 @@ struct cProjectileDesc
 	ProjectileHitBehavior HitBehavior{ ProjectileHitBehavior::Stop };
 	float AreaRadius{ 0.0f };
 	int MaxTargetHits{ 1 };
+	int MaxBounces{ 0 };
+	int AliveLimitGroup{ PROJECTILE_INVALID_ID };
+	int MaxAliveInGroup{ 0 };
+	bool UsesBezierHoming{ false };
+	float BezierCurveStrength{ 0.0f };
+	float BezierCurveDirection{ 1.0f };
+	ProjectileMotionBehavior MotionBehavior{ ProjectileMotionBehavior::Linear };
+	float BoomerangReturnTime{ 0.0f };
+	float OrbitRadius{ 0.0f };
+	float OrbitAngularSpeed{ 0.0f };
+	float OrbitPhase{ 0.0f };
+	float SpinSpeed{ 0.0f };
+	float RepeatHitInterval{ 0.0f };
+	float MagicBladeSummonTime{ 0.0f };
+	float MagicBladeReadyDelay{ 0.2f };
+	float MagicBladeSideOffset{ 0.0f };
 	bool UsesTrail{ false };
 	int TrailTextureID{ -1 };
 	float TrailEmitInterval{ 0.02f };
@@ -69,6 +94,37 @@ struct cProjectile
 	int MaxTargetHits{ 1 };
 	int TargetHitCount{ 0 };
 	std::array<int, PROJECTILE_HIT_HISTORY_MAX> HitTargetIDs{};
+	int RemainingBounces{ 0 };
+	int AliveLimitGroup{ PROJECTILE_INVALID_ID };
+	bool UsesBezierHoming{ false };
+	float BezierCurveStrength{ 0.0f };
+	float BezierCurveDirection{ 1.0f };
+	float BezierSpeed{ 0.0f };
+	int BezierTargetID{ PROJECTILE_INVALID_ID };
+	bool HasBezierSegment{ false };
+	DirectX::XMFLOAT2 BezierStart{ 0.0f, 0.0f };
+	DirectX::XMFLOAT2 BezierControl{ 0.0f, 0.0f };
+	DirectX::XMFLOAT2 BezierControl2{ 0.0f, 0.0f };
+	DirectX::XMFLOAT2 BezierEnd{ 0.0f, 0.0f };
+	float BezierElapsed{ 0.0f };
+	float BezierDuration{ 0.0f };
+	ProjectileMotionBehavior MotionBehavior{ ProjectileMotionBehavior::Linear };
+	float BoomerangReturnTime{ 0.0f };
+	bool IsReturningToOwner{ false };
+	bool HasReachedOwner{ false };
+	float OrbitRadius{ 0.0f };
+	float OrbitAngularSpeed{ 0.0f };
+	float OrbitPhase{ 0.0f };
+	float SpinSpeed{ 0.0f };
+	float RepeatHitInterval{ 0.0f };
+	float RepeatHitTimer{ 0.0f };
+	float MagicBladeSummonTime{ 0.0f };
+	float MagicBladeReadyDelay{ 0.2f };
+	float MagicBladeSideOffset{ 0.0f };
+	DirectX::XMFLOAT2 MagicBladeSummonStart{ 0.0f, 0.0f };
+	DirectX::XMFLOAT2 MagicBladeLaunchVelocity{ 0.0f, 0.0f };
+	bool MagicBladeHasLaunched{ false };
+	bool CanHitTargets{ true };
 	bool UsesTrail{ false };
 	int TrailTextureID{ -1 };
 	float TrailEmitInterval{ 0.02f };
@@ -86,14 +142,19 @@ void ProjectileSystem_Initialize();
 void ProjectileSystem_Finalize();
 void ProjectileSystem_Clear();
 int ProjectileSystem_Fire(const cProjectileDesc& desc);
-void ProjectileSystem_Update(float delta_time);
+void ProjectileSystem_Update(
+	float delta_time,
+	const DirectX::XMFLOAT2& owner_position);
 void ProjectileSystem_Draw();
 void ProjectileSystem_RegisterColliders();
 void ProjectileSystem_Deactivate(int projectile_id);
+void ProjectileSystem_DeactivateGroup(int alive_limit_group);
+int ProjectileSystem_GetActiveGroupCount(int alive_limit_group);
 bool ProjectileSystem_IsActive(int projectile_id);
 const cProjectile* ProjectileSystem_GetProjectile(int projectile_id);
 bool ProjectileSystem_TryRegisterTargetHit(int projectile_id, int target_id);
 int ProjectileSystem_GetActiveCount();
 int ProjectileSystem_GetCapacity();
+int ProjectileSystem_ConsumeMagicBladeLaunchEvents();
 
 #endif // !PROJECTILE_H

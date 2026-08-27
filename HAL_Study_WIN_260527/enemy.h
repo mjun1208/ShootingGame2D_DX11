@@ -14,8 +14,13 @@ public:
 		const DirectX::XMFLOAT2& position,
 		float speed,
 		float max_hit_point = 23.0f,
-		float collision_radius = RADIUS);
-	void Update(float delta_time, const DirectX::XMFLOAT2& target_position);
+		float collision_radius = RADIUS,
+		const DirectX::XMFLOAT2& map_collision_offset = { 0.0f, 0.0f },
+		float map_collision_radius = 0.0f);
+	void Update(
+		float delta_time,
+		const DirectX::XMFLOAT2& target_position,
+		float chase_speed_scale = 1.0f);
 	void ApplySeparation(const DirectX::XMFLOAT2& movement);
 	void ApplyKnockback(const DirectX::XMFLOAT2& direction, float speed);
 	void Draw(
@@ -29,6 +34,7 @@ public:
 		bool source_faces_left = false) const;
 	void RegisterCollider(int owner_id) const;
 	void ApplyDamage(float damage);
+	void SetHitPoint(float hit_point);
 	void Deactivate();
 
 	bool IsActive() const;
@@ -36,6 +42,11 @@ public:
 	bool IsFacingLeft() const;
 	DirectX::XMFLOAT2 GetPosition() const;
 	float GetCollisionRadius() const;
+	DirectX::XMFLOAT2 GetMapCollisionCenter() const;
+	float GetMapCollisionRadius() const;
+	float GetHitPoint() const;
+	float GetMaxHitPoint() const;
+	float GetHitPointRatio() const;
 
 private:
 	enum class State
@@ -48,14 +59,19 @@ private:
 	static constexpr float DISSOLVE_DURATION = 0.6f;
 	static constexpr float KNOCKBACK_DECELERATION = 1350.0f;
 	static constexpr float MAX_KNOCKBACK_SPEED = 620.0f;
+	static constexpr float MAP_COLLISION_PADDING = 8.0f;
 
 	void DecelerateKnockback(float delta_time);
+	void MoveWithMapCollision(const DirectX::XMFLOAT2& movement);
 
 	DirectX::XMFLOAT2 m_Position{ 0.0f, 0.0f };
 	DirectX::XMFLOAT2 m_KnockbackVelocity{ 0.0f, 0.0f };
 	float m_Speed{ 0.0f };
 	float m_HitPoint{ 23.0f };
+	float m_MaxHitPoint{ 23.0f };
 	float m_CollisionRadius{ RADIUS };
+	DirectX::XMFLOAT2 m_MapCollisionOffset{ 0.0f, 0.0f };
+	float m_MapCollisionRadius{ RADIUS };
 	float m_DissolveTimer{ 0.0f };
 	bool m_FacingLeft{ false };
 	State m_State{ State::Inactive };

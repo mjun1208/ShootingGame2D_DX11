@@ -37,6 +37,7 @@ namespace
 		float MagnetSpeed{ 0.0f };
 		float Age{ 0.0f };
 		int Experience{ 0 };
+		int RoomIndex{ -1 };
 		bool Active{ false };
 		bool Magnetized{ false };
 	};
@@ -174,7 +175,10 @@ void Clear()
 	BuildGrid();
 }
 
-void Spawn(const DirectX::XMFLOAT2& world_position, int experience)
+void Spawn(
+	const DirectX::XMFLOAT2& world_position,
+	int experience,
+	int room_index)
 {
 	if (experience <= 0)
 	{
@@ -207,7 +211,28 @@ void Spawn(const DirectX::XMFLOAT2& world_position, int experience)
 		std::sin(angle) * EXPERIENCE_GEM_START_SPEED * speed_scale,
 	};
 	gem.Experience = experience;
+	gem.RoomIndex = room_index;
 	gem.Active = true;
+}
+
+void AttractAllInRoom(int room_index)
+{
+	if (room_index < 0)
+	{
+		return;
+	}
+
+	for (ExperienceGem& gem : g_ExperienceGems)
+	{
+		if (!gem.Active || gem.RoomIndex != room_index)
+		{
+			continue;
+		}
+
+		gem.Magnetized = true;
+		gem.MagnetSpeed = EXPERIENCE_GEM_MAGNET_START_SPEED;
+		gem.Velocity = { 0.0f, 0.0f };
+	}
 }
 
 void Update(float delta_time, const DirectX::XMFLOAT2& player_position)
@@ -317,13 +342,13 @@ void Draw()
 
 	if (!glow_instances.empty())
 	{
-		SpriteInstanced_DrawAdditive(
+		SpriteInstanced_DrawAdditiveUnlit(
 			g_ExperienceGemTextureID,
 			glow_instances.data(),
 			static_cast<int>(glow_instances.size()));
 		// A second additive pass makes the gem itself emissive without consuming
 		// one of the renderer's limited point-light slots per pickup.
-		SpriteInstanced_DrawAdditive(
+		SpriteInstanced_DrawAdditiveUnlit(
 			g_ExperienceGemTextureID,
 			gem_instances.data(),
 			static_cast<int>(gem_instances.size()));

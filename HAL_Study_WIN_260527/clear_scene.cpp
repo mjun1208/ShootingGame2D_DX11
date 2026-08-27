@@ -148,10 +148,12 @@ void ClearScene::Update(float delta_time)
 
 	if (InputKeyboard_IsTrigger(KK_UP) || InputKeyboard_IsTrigger(KK_W))
 	{
+		Button_PlayNavigateSound();
 		SetSelectedButton(NEW_RUN_BUTTON_INDEX);
 	}
 	if (InputKeyboard_IsTrigger(KK_DOWN) || InputKeyboard_IsTrigger(KK_S))
 	{
+		Button_PlayNavigateSound();
 		SetSelectedButton(TITLE_BUTTON_INDEX);
 	}
 
@@ -167,6 +169,7 @@ void ClearScene::Update(float delta_time)
 	}
 	else if (InputKeyboard_IsTrigger(KK_ENTER) || InputKeyboard_IsTrigger(KK_SPACE))
 	{
+		Button_PlayConfirmSound();
 		ActivateSelectedButton();
 	}
 }

@@ -5,6 +5,7 @@
 
 #include <DirectXMath.h>
 
+#include <array>
 #include <string>
 
 enum class MonsterDeathEffect
@@ -16,28 +17,34 @@ enum class MonsterDeathEffect
 
 struct MonsterData
 {
-	MonsterType Type{ MonsterType::Slime };
+	MonsterType Type;
 	std::string Id;
 	std::wstring TexturePath;
-	float MaxHitPoint{ 23.0f };
-	float MoveSpeed{ 120.0f };
-	DirectX::XMFLOAT2 DrawSize{ 48.0f, 48.0f };
-	float CollisionRadius{ 24.0f };
-	int FrameWidth{ 16 };
-	int FrameHeight{ 16 };
-	int FrameCount{ 1 };
-	float AnimationSpeed{ 0.16f };
-	bool SourceFacesLeft{ false };
-	MonsterDeathEffect DeathEffect{ MonsterDeathEffect::Blood };
-	int ExperienceDrop{ 1 };
-	float SpawnWeight{ 1.0f };
+	float MaxHitPoint;
+	float MoveSpeed;
+	DirectX::XMFLOAT2 DrawSize;
+	DirectX::XMFLOAT2 AimOffset;
+	float CollisionRadius;
+	int FrameWidth;
+	int FrameHeight;
+	int FrameCount;
+	float AnimationSpeed;
+	bool SourceFacesLeft;
+	MonsterDeathEffect DeathEffect;
+	int ExperienceDrop;
+	float SpawnWeight;
 };
 
-namespace MonsterDatabase
+class MonsterGameData
 {
+public:
+	static constexpr std::size_t MONSTER_COUNT = 14;
+
 	bool Load(const char* file_path);
-	void ResetDefaults();
-	const MonsterData& Get(MonsterType type);
-}
+	const MonsterData& Get(MonsterType type) const;
+
+private:
+	std::array<MonsterData, MONSTER_COUNT> m_Monsters{};
+};
 
 #endif // MONSTER_DATA_H

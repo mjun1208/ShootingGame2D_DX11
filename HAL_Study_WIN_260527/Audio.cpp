@@ -7,21 +7,6 @@
 static IXAudio2* g_Xaudio{};
 static IXAudio2MasteringVoice* g_MasteringVoice{};
 
-void InitAudio()
-{
-	// XAudio生成
-	XAudio2Create(&g_Xaudio, 0);
-
-	// マスタリングボイス生成
-	g_Xaudio->CreateMasteringVoice(&g_MasteringVoice);
-}
-
-void ReleaseAudio()
-{
-	g_MasteringVoice->DestroyVoice();
-	g_Xaudio->Release();
-}
-
 struct AUDIO
 {
 	IXAudio2SourceVoice*	SourceVoice{};
@@ -34,8 +19,57 @@ struct AUDIO
 #define AUDIO_MAX 100
 static AUDIO g_Audio[AUDIO_MAX]{};
 
+void InitAudio()
+{
+	if (g_Xaudio)
+	{
+		return;
+	}
+
+	// XAudio生成
+	HRESULT result = XAudio2Create(&g_Xaudio, 0);
+	if (FAILED(result))
+	{
+		g_Xaudio = nullptr;
+		return;
+	}
+
+	// マスタリングボイス生成
+	result = g_Xaudio->CreateMasteringVoice(&g_MasteringVoice);
+	if (FAILED(result))
+	{
+		g_Xaudio->Release();
+		g_Xaudio = nullptr;
+		g_MasteringVoice = nullptr;
+	}
+}
+
+void ReleaseAudio()
+{
+	for (int i = 0; i < AUDIO_MAX; ++i)
+	{
+		UnloadAudio(i);
+	}
+
+	if (g_MasteringVoice)
+	{
+		g_MasteringVoice->DestroyVoice();
+		g_MasteringVoice = nullptr;
+	}
+	if (g_Xaudio)
+	{
+		g_Xaudio->Release();
+		g_Xaudio = nullptr;
+	}
+}
+
 int LoadAudio(const char *FileName)
 {
+	if (!g_Xaudio || !FileName)
+	{
+		return -1;
+	}
+
 	int index = -1;
 
 	for (int i = 0; i < AUDIO_MAX; i++)
@@ -117,15 +151,32 @@ int LoadAudio(const char *FileName)
 
 void UnloadAudio(int Index)
 {
-	g_Audio[Index].SourceVoice->Stop();
-	g_Audio[Index].SourceVoice->DestroyVoice();
+	if (Index < 0 || Index >= AUDIO_MAX)
+	{
+		return;
+	}
+
+	if (g_Audio[Index].SourceVoice)
+	{
+		g_Audio[Index].SourceVoice->Stop();
+		g_Audio[Index].SourceVoice->DestroyVoice();
+		g_Audio[Index].SourceVoice = nullptr;
+	}
 
 	delete[] g_Audio[Index].SoundData;
 	g_Audio[Index].SoundData = nullptr;
+	g_Audio[Index].Length = 0;
+	g_Audio[Index].PlayLength = 0;
 }
 
 void PlayAudio(int Index, bool Loop)
 {
+	if (Index < 0 || Index >= AUDIO_MAX ||
+		!g_Audio[Index].SourceVoice || !g_Audio[Index].SoundData)
+	{
+		return;
+	}
+
 	g_Audio[Index].SourceVoice->Stop();
 	g_Audio[Index].SourceVoice->FlushSourceBuffers();
 

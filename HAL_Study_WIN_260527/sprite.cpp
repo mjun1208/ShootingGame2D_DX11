@@ -22,6 +22,7 @@ static ID3D11RasterizerState* g_pRasterizerState = nullptr;
 
 static ID3D11Buffer* g_pVSConstantBuffer = nullptr; //?定数バッフ?
 static ID3D11Buffer* g_pPSConstantBuffer = nullptr; //?定数バッフ?
+static ID3D11Buffer* g_pLightConstantBuffer = nullptr;
 static XMFLOAT4X4 g_ViewMatrix{};
 
 // 頂??造体
@@ -38,6 +39,8 @@ struct SpritePixelConstants
     XMFLOAT4 edge_color;
 };
 
+static bool g_LightingEnabled = true;
+
 static void Sprite_SetPixelConstants(
     ID3D11DeviceContext* context,
     const XMFLOAT4& color,
@@ -51,6 +54,11 @@ static void Sprite_SetPixelConstants(
 
     context->UpdateSubresource(g_pPSConstantBuffer, 0, nullptr, &constants, 0, 0);
     context->PSSetConstantBuffers(0, 1, &g_pPSConstantBuffer);
+    const SpriteLightConstants light_constants = SpriteLighting_BuildConstants(
+        g_ViewMatrix, g_LightingEnabled, false);
+    context->UpdateSubresource(
+        g_pLightConstantBuffer, 0, nullptr, &light_constants, 0, 0);
+    context->PSSetConstantBuffers(1, 1, &g_pLightConstantBuffer);
 }
 
 bool Sprite_Initialize()
@@ -100,6 +108,23 @@ bool Sprite_Initialize()
     ps_cb.ByteWidth = sizeof(SpritePixelConstants);
     ps_cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     hr = Direct3D_GetDevice()->CreateBuffer(&ps_cb, nullptr, &g_pPSConstantBuffer);
+    if (FAILED(hr))
+    {
+        SAFE_RELEASE(g_pVSConstantBuffer);
+        SAFE_RELEASE(g_pVertexBuffer);
+        return false;
+    }
+
+    ps_cb.ByteWidth = sizeof(SpriteLightConstants);
+    hr = Direct3D_GetDevice()->CreateBuffer(
+        &ps_cb, nullptr, &g_pLightConstantBuffer);
+    if (FAILED(hr))
+    {
+        SAFE_RELEASE(g_pPSConstantBuffer);
+        SAFE_RELEASE(g_pVSConstantBuffer);
+        SAFE_RELEASE(g_pVertexBuffer);
+        return false;
+    }
 
 
     D3D11_SAMPLER_DESC sd{};
@@ -194,6 +219,7 @@ bool Sprite_Initialize()
 
 void Sprite_Finalize()
 {
+    SAFE_RELEASE(g_pLightConstantBuffer);
     SAFE_RELEASE(g_pVSConstantBuffer);
     SAFE_RELEASE(g_pPSConstantBuffer);
     SAFE_RELEASE(g_pRasterizerState);
@@ -229,6 +255,13 @@ void Sprite_SetViewMatrix(const XMMATRIX& view_matrix)
 void Sprite_ResetViewMatrix()
 {
     XMStoreFloat4x4(&g_ViewMatrix, XMMatrixIdentity());
+}
+
+bool Sprite_SetLightingEnabled(bool enabled)
+{
+    const bool previous = g_LightingEnabled;
+    g_LightingEnabled = enabled;
+    return previous;
 }
 
 void Sprite_Draw(

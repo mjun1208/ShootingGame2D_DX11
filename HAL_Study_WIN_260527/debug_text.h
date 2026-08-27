@@ -1,6 +1,6 @@
-/*==============================================================================
+ï»¿/*==============================================================================
 
-   Direct3D11—p ƒfƒoƒbƒOƒeƒLƒXƒg•\¦ [debug_text.h]
+   Direct3D11ç”¨ ãƒ‡ãƒãƒƒã‚°ãƒ†ã‚­ã‚¹ãƒˆè¡¨ç¤º [debug_text.h]
 														 Author : Youhei Sato
 														 Date   : 2025/06/15
 --------------------------------------------------------------------------------
@@ -14,7 +14,7 @@
 #include <string>
 #include <tuple>
 #include <list>
-#include <wrl/client.h> // Microsoft::WRL::ComPtr‚ğg—p‚·‚é‚½‚ß‚É•K—v
+#include <wrl/client.h> // Microsoft::WRL::ComPtrã‚’ä½¿ç”¨ã™ã‚‹ãŸã‚ã«å¿…è¦
 #include <DirectXMath.h>
 
 
@@ -23,20 +23,20 @@ namespace hal
 	class DebugText
 	{
 	private:
-		// QÆƒCƒ“ƒ^[ƒtƒF[ƒXiŠO•”‚©‚çØ‚è‚é‚à‚Ì‚È‚Ì‚ÅRelease•s—vj
+		// å‚ç…§ã‚¤ãƒ³ã‚¿ãƒ¼ãƒ•ã‚§ãƒ¼ã‚¹ï¼ˆå¤–éƒ¨ã‹ã‚‰å€Ÿã‚Šã‚‹ã‚‚ã®ãªã®ã§Releaseä¸è¦ï¼‰
 		ID3D11Device* m_pDevice = nullptr;
 		ID3D11DeviceContext* m_pContext = nullptr;
 
-		float m_OffsetX{ 0.0f }; // ƒIƒtƒZƒbƒgXÀ•W
-		float m_OffsetY{ 0.0f }; // ƒIƒtƒZƒbƒgYÀ•W
-		ULONG m_MaxLine{ 0 }; // Å‘ås”
-		ULONG m_MaxCharactersPerLine{ 0 }; // 1s‚ ‚½‚è‚ÌÅ‘å•¶š”
-		float m_LineSpacing{ 0.0f }; // s‚ÌŠÔŠu
-		float m_CharacterSpacing{ 0.0f }; // •¶š‚ÌŠÔŠu
+		float m_OffsetX{ 0.0f }; // ã‚ªãƒ•ã‚»ãƒƒãƒˆXåº§æ¨™
+		float m_OffsetY{ 0.0f }; // ã‚ªãƒ•ã‚»ãƒƒãƒˆYåº§æ¨™
+		ULONG m_MaxLine{ 0 }; // æœ€å¤§è¡Œæ•°
+		ULONG m_MaxCharactersPerLine{ 0 }; // 1è¡Œã‚ãŸã‚Šã®æœ€å¤§æ–‡å­—æ•°
+		float m_LineSpacing{ 0.0f }; // è¡Œã®é–“éš”
+		float m_CharacterSpacing{ 0.0f }; // æ–‡å­—ã®é–“éš”
 
 		struct Characters { 
 			Characters(const DirectX::XMFLOAT4& color) : color(color) {}
-			std::string characters; 
+			std::u32string characters;
 			DirectX::XMFLOAT4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
 		};
 
@@ -46,52 +46,56 @@ namespace hal
 			ULONG spaceCount{ 0 };
 		};
 
-		std::list<LineStrings> m_TextLines; // •\¦‚·‚éƒeƒLƒXƒgs‚ÌƒŠƒXƒg
-		UINT m_CharacterCount{ 0 }; // •\¦•¶š‚Ì‘”iƒ^ƒu‚â‰üs‚È‚Ç‚ğœ‚­j
+		std::list<LineStrings> m_TextLines; // è¡¨ç¤ºã™ã‚‹ãƒ†ã‚­ã‚¹ãƒˆè¡Œã®ãƒªã‚¹ãƒˆ
+		UINT m_CharacterCount{ 0 }; // è¡¨ç¤ºæ–‡å­—ã®ç·æ•°ï¼ˆã‚¿ãƒ–ã‚„æ”¹è¡Œãªã©ã‚’é™¤ãï¼‰
 
-		// ƒtƒHƒ“ƒgƒeƒNƒXƒ`ƒƒŠÖ˜A
-		std::wstring m_FileName; // ƒtƒ@ƒCƒ‹–¼
+		// ãƒ•ã‚©ãƒ³ãƒˆãƒ†ã‚¯ã‚¹ãƒãƒ£é–¢é€£
+		std::wstring m_FileName; // ãƒ•ã‚¡ã‚¤ãƒ«å
 		ID3D11Resource* m_pTexture = nullptr;
 		ID3D11ShaderResourceView* m_pTextureView = nullptr;
-		UINT m_TextureWidth{ 0 }; // ƒeƒNƒXƒ`ƒƒ‚Ì•
-		UINT m_TextureHeight{ 0 }; // ƒeƒNƒXƒ`ƒƒ‚Ì‚‚³
+		UINT m_TextureWidth{ 0 }; // ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®å¹…
+		UINT m_TextureHeight{ 0 }; // ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®é«˜ã•
+		UINT m_AtlasColumns{ 16 };
+		UINT m_AtlasRows{ 16 };
+		std::unordered_map<char32_t, UINT> m_GlyphIndices;
 
-		// ƒeƒNƒXƒ`ƒƒŠÇ——p‚ÌMAP
+		// ãƒ†ã‚¯ã‚¹ãƒãƒ£ç®¡ç†ç”¨ã®MAP
 		static std::unordered_map<std::wstring, std::tuple<ID3D11Resource*, ID3D11ShaderResourceView*>> m_TextureMap;
 
-		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVertexBuffer; // ’¸“_ƒoƒbƒtƒ@
-		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pIndexBuffer; // ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@
-		UINT m_BufferSourceCharacterCount{ 0 }; // ƒoƒbƒtƒ@‚É“o˜^‚³‚ê‚½Å‘å•¶š”
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVertexBuffer; // é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡
+		Microsoft::WRL::ComPtr<ID3D11Buffer> m_pIndexBuffer; // ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡
+		UINT m_BufferSourceCharacterCount{ 0 }; // ãƒãƒƒãƒ•ã‚¡ã«ç™»éŒ²ã•ã‚ŒãŸæœ€å¤§æ–‡å­—æ•°
 
-		static Microsoft::WRL::ComPtr<ID3D11BlendState> m_pBlendState; // ƒuƒŒƒ“ƒhƒXƒe[ƒg
-		static Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pDepthStencilState; // ‰œs‚«ƒXƒeƒ“ƒVƒ‹ƒXƒe[ƒg
-		static Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pRasterizerState; // ƒ‰ƒXƒ^ƒ‰ƒCƒUƒXƒe[ƒg
+		static Microsoft::WRL::ComPtr<ID3D11BlendState> m_pBlendState; // ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆ
+		static Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pDepthStencilState; // å¥¥è¡Œãã‚¹ãƒ†ãƒ³ã‚·ãƒ«ã‚¹ãƒ†ãƒ¼ãƒˆ
+		static Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pRasterizerState; // ãƒ©ã‚¹ã‚¿ãƒ©ã‚¤ã‚¶ã‚¹ãƒ†ãƒ¼ãƒˆ
 
-		static Microsoft::WRL::ComPtr<ID3D11VertexShader> m_pVertexShader; // ’¸“_ƒVƒF[ƒ_[
-		static Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pInputLayout; // “ü—ÍƒŒƒCƒAƒEƒg
-		static Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVSConstantBuffer; // ’¸“_ƒVƒF[ƒ_[’è”ƒoƒbƒtƒ@
-		static Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPixelShader; // ƒsƒNƒZƒ‹ƒVƒF[ƒ_[
-		static Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pSamplerState; // ƒTƒ“ƒvƒ‰[ƒXƒe[ƒg
+		static Microsoft::WRL::ComPtr<ID3D11VertexShader> m_pVertexShader; // é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
+		static Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pInputLayout; // å…¥åŠ›ãƒ¬ã‚¤ã‚¢ã‚¦ãƒˆ
+		static Microsoft::WRL::ComPtr<ID3D11Buffer> m_pVSConstantBuffer; // é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼å®šæ•°ãƒãƒƒãƒ•ã‚¡
+		static Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPixelShader; // ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
+		static Microsoft::WRL::ComPtr<ID3D11SamplerState> m_pSamplerState; // ã‚µãƒ³ãƒ—ãƒ©ãƒ¼ã‚¹ãƒ†ãƒ¼ãƒˆ
 
 	public:
 		DebugText() = delete;
 		DebugText(ID3D11Device* pDevice, ID3D11DeviceContext* pContext, const wchar_t* pFontTextureFileName, UINT screenWidth, UINT screenHeight, float offsetX = 0.0f, float offsetY = 0.0f, ULONG maxLine = 0, ULONG maxCharactersPerLine = 0, float lineSpacing = 0.0f, float characterSpacing = 0.0f);
 		~DebugText();
 
-		// •¶š—ñ‚Ì“o˜^i•`‰æ‰Â”\‚È•¶šA‰üsAƒ^ƒu‚È‚Ç‚É‘Î‰j
+		// æ–‡å­—åˆ—ã®ç™»éŒ²ï¼ˆæç”»å¯èƒ½ãªæ–‡å­—ã€æ”¹è¡Œã€ã‚¿ãƒ–ãªã©ã«å¯¾å¿œï¼‰
 		void SetText(const char* pText, DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f });
+		static std::size_t CountUtf8Characters(const char* pText);
 
 		void Draw();
 
-		void Clear(); // “o˜^‚³‚ê‚½ƒeƒLƒXƒg‚ğƒNƒŠƒA
+		void Clear(); // ç™»éŒ²ã•ã‚ŒãŸãƒ†ã‚­ã‚¹ãƒˆã‚’ã‚¯ãƒªã‚¢
 
 	private:
 		
 		struct Vertex
 		{
-			DirectX::XMFLOAT3 position; // À•W
-			DirectX::XMFLOAT4 color;    // F
-			DirectX::XMFLOAT2 texcoord; // ƒeƒNƒXƒ`ƒƒÀ•W
+			DirectX::XMFLOAT3 position; // åº§æ¨™
+			DirectX::XMFLOAT4 color;    // è‰²
+			DirectX::XMFLOAT2 texcoord; // ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™
 		};
 
 		void createBuffer(ULONG characterCount);

@@ -18,16 +18,22 @@ namespace
 	constexpr float DAMAGE_TEXT_GLYPH_WIDTH = 20.0f;
 	constexpr float DAMAGE_TEXT_GLYPH_HEIGHT = 32.0f;
 	constexpr float DAMAGE_TEXT_GLYPH_ADVANCE = 19.0f;
+	constexpr float DAMAGE_TEXT_STACK_WINDOW = 0.05f;
+	constexpr float DAMAGE_TEXT_STACK_DISTANCE = 24.0f;
+	constexpr float DAMAGE_TEXT_STACK_SPACING = 30.0f;
 	constexpr int FONT_ATLAS_COLUMNS = 16;
 	constexpr int FONT_GLYPH_WIDTH_PIXELS = 20;
 	constexpr int FONT_GLYPH_HEIGHT_PIXELS = 32;
 
 	struct DamageTextEntry
 	{
+		DirectX::XMFLOAT2 OriginPosition{};
 		DirectX::XMFLOAT2 Position{};
 		DirectX::XMFLOAT2 Velocity{};
+		DirectX::XMFLOAT4 Color{ 1.0f, 1.0f, 1.0f, 1.0f };
 		std::string Text;
 		float Age{ 0.0f };
+		int StackLevel{ 0 };
 	};
 
 	int g_FontTextureID = TEXTURE_INVALID_ID;
@@ -43,15 +49,14 @@ namespace
 	std::string FormatDamage(float damage)
 	{
 		char buffer[24]{};
-		const float rounded = std::round(damage);
-		if (std::fabs(damage - rounded) < 0.01f)
-		{
-			std::snprintf(buffer, sizeof(buffer), "%.0f", rounded);
-		}
-		else
-		{
-			std::snprintf(buffer, sizeof(buffer), "%.1f", damage);
-		}
+		std::snprintf(buffer, sizeof(buffer), "%.0f", std::round(damage));
+		return buffer;
+	}
+
+	std::string FormatHealing(float healing)
+	{
+		char buffer[24]{};
+		std::snprintf(buffer, sizeof(buffer), "+%.0f", std::round(healing));
 		return buffer;
 	}
 
@@ -148,9 +153,67 @@ namespace
 				entry.Position.y,
 				glyph_width,
 				glyph_height,
-				{ 1.0f, 1.0f, 1.0f, alpha },
+				{
+					entry.Color.x,
+					entry.Color.y,
+					entry.Color.z,
+					entry.Color.w * alpha,
+				},
 				texture_size);
 		}
+	}
+
+	void SpawnEntry(
+		std::string text,
+		const DirectX::XMFLOAT2& world_position,
+		const DirectX::XMFLOAT4& color)
+	{
+		if (g_FontTextureID == TEXTURE_INVALID_ID)
+		{
+			return;
+		}
+
+		if (g_Entries.size() >= DAMAGE_TEXT_MAX)
+		{
+			g_Entries.erase(g_Entries.begin());
+		}
+
+		const int drift_step = static_cast<int>(g_SpawnSerial++ % 7u) - 3;
+		int stack_level = 0;
+		const float stack_distance_sq =
+			DAMAGE_TEXT_STACK_DISTANCE * DAMAGE_TEXT_STACK_DISTANCE;
+		for (const DamageTextEntry& existing : g_Entries)
+		{
+			if (existing.Age > DAMAGE_TEXT_STACK_WINDOW)
+			{
+				continue;
+			}
+			const float distance_x =
+				existing.OriginPosition.x - world_position.x;
+			const float distance_y =
+				existing.OriginPosition.y - world_position.y;
+			if (distance_x * distance_x + distance_y * distance_y <=
+				stack_distance_sq)
+			{
+				stack_level = std::max(stack_level, existing.StackLevel + 1);
+			}
+		}
+
+		DamageTextEntry entry{};
+		entry.OriginPosition = world_position;
+		entry.Color = color;
+		entry.Position = {
+			world_position.x,
+			world_position.y - 54.0f -
+				static_cast<float>(stack_level) * DAMAGE_TEXT_STACK_SPACING,
+		};
+		entry.Velocity = {
+			static_cast<float>(drift_step) * 7.0f,
+			-DAMAGE_TEXT_RISE_SPEED,
+		};
+		entry.Text = std::move(text);
+		entry.StackLevel = stack_level;
+		g_Entries.push_back(std::move(entry));
 	}
 }
 
@@ -179,25 +242,33 @@ void Clear()
 
 void Spawn(float damage, const DirectX::XMFLOAT2& world_position)
 {
-	if (damage <= 0.0f || g_FontTextureID == TEXTURE_INVALID_ID)
+	Spawn(damage, world_position, { 1.0f, 1.0f, 1.0f, 1.0f });
+}
+
+void Spawn(
+	float damage,
+	const DirectX::XMFLOAT2& world_position,
+	const DirectX::XMFLOAT4& color)
+{
+	if (damage <= 0.0f)
 	{
 		return;
 	}
+	SpawnEntry(FormatDamage(damage), world_position, color);
+}
 
-	if (g_Entries.size() >= DAMAGE_TEXT_MAX)
+void SpawnHealing(
+	float healing,
+	const DirectX::XMFLOAT2& world_position)
+{
+	if (healing <= 0.0f)
 	{
-		g_Entries.erase(g_Entries.begin());
+		return;
 	}
-
-	const int drift_step = static_cast<int>(g_SpawnSerial++ % 7u) - 3;
-	DamageTextEntry entry{};
-	entry.Position = { world_position.x, world_position.y - 54.0f };
-	entry.Velocity = {
-		static_cast<float>(drift_step) * 7.0f,
-		-DAMAGE_TEXT_RISE_SPEED,
-	};
-	entry.Text = FormatDamage(damage);
-	g_Entries.push_back(std::move(entry));
+	SpawnEntry(
+		FormatHealing(healing),
+		world_position,
+		{ 0.20f, 1.0f, 0.32f, 1.0f });
 }
 
 void Update(float delta_time)
@@ -259,14 +330,14 @@ void Draw()
 
 	if (!outline_instances.empty())
 	{
-		SpriteInstanced_Draw(
+		SpriteInstanced_DrawUnlit(
 			g_FontTextureID,
 			outline_instances.data(),
 			static_cast<int>(outline_instances.size()));
 	}
 	if (!fill_instances.empty())
 	{
-		SpriteInstanced_Draw(
+		SpriteInstanced_DrawUnlit(
 			g_FontTextureID,
 			fill_instances.data(),
 			static_cast<int>(fill_instances.size()));

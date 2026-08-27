@@ -16,6 +16,11 @@ enum class GameEffectType : std::uint8_t
 	VoidImplosion,
 	EnemyDefeatSmoke,
 	SmokePoof,
+	PixelMagicHit,
+	SprintDust,
+	DashSlashHitBurst,
+	DashSlashHitCut,
+	EnemyWarriorSlash,
 	Count
 };
 
@@ -29,11 +34,19 @@ public:
 	void Update(float delta_time);
 	void Clear();
 	void Draw() const;
+	int AppendPointLights(
+		SpritePointLight* lights,
+		int light_count,
+		int capacity) const;
 	bool Play(
 		GameEffectType type,
 		const DirectX::XMFLOAT2& position,
 		float scale = 1.0f,
-		const DirectX::XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
+		const DirectX::XMFLOAT4& color = { 1.0f, 1.0f, 1.0f, 1.0f },
+		float rotation = 0.0f);
+	bool PlayAreaExplosion(
+		const DirectX::XMFLOAT2& position,
+		float radius);
 	void PlayEnemyDefeat(const DirectX::XMFLOAT2& position);
 
 private:
@@ -49,6 +62,9 @@ private:
 		float DrawWidth{ 1.0f };
 		float DrawHeight{ 1.0f };
 		DirectX::XMFLOAT2 PivotOffset{};
+		DirectX::XMFLOAT3 LightColor{ 1.0f, 1.0f, 1.0f };
+		float LightRadius{ 0.0f };
+		float LightStrength{ 0.0f };
 	};
 
 	static constexpr std::size_t EFFECT_MAX = 256;

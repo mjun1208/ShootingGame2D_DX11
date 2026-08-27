@@ -1,6 +1,8 @@
 #ifndef PROCEDURAL_MAP_H
 #define PROCEDURAL_MAP_H
 
+#include "sprite_lighting.h"
+
 #include <DirectXMath.h>
 
 #include <cstdint>
@@ -16,6 +18,7 @@ struct ProceduralMapRoom
 	DirectX::XMFLOAT2 WorldMin{ 0.0f, 0.0f };
 	DirectX::XMFLOAT2 WorldMax{ 0.0f, 0.0f };
 	DirectX::XMFLOAT2 Center{ 0.0f, 0.0f };
+	bool IsLargeRoom{ false };
 	bool IsBossRoom{ false };
 	bool IsPortalRoom{ false };
 };
@@ -28,11 +31,20 @@ struct ProceduralMapOverviewLayout
 	bool IsExpanded{ false };
 };
 
+using ProceduralMapRoomVisibilityPredicate = bool (*)(int room_index);
+
 bool ProceduralMap_Initialize(std::uint32_t seed = 0);
 void ProceduralMap_Finalize();
+void ProceduralMap_Update(float delta_time);
 void ProceduralMap_Regenerate(std::uint32_t seed = 0);
 void ProceduralMap_GenerateRound(int round, std::uint32_t seed = 0);
 void ProceduralMap_Draw(
+	const DirectX::XMFLOAT2& camera_position,
+	const DirectX::XMFLOAT2& viewport_size);
+int ProceduralMap_AppendTorchLights(
+	SpritePointLight* lights,
+	int light_count,
+	int capacity,
 	const DirectX::XMFLOAT2& camera_position,
 	const DirectX::XMFLOAT2& viewport_size);
 void ProceduralMap_DrawEncounterLock();
@@ -40,9 +52,10 @@ void ProceduralMap_DrawFadeOverlay(
 	const DirectX::XMFLOAT2& viewport_size,
 	float alpha);
 ProceduralMapOverviewLayout ProceduralMap_DrawOverview(
-	const DirectX::XMFLOAT2& camera_position,
 	const DirectX::XMFLOAT2& viewport_size,
-	bool expanded);
+	bool expanded,
+	ProceduralMapRoomVisibilityPredicate is_room_visible = nullptr,
+	ProceduralMapRoomVisibilityPredicate is_room_cleared = nullptr);
 
 std::uint32_t ProceduralMap_GetSeed();
 int ProceduralMap_GetRound();

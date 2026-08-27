@@ -1,5 +1,6 @@
 #include "button.h"
 
+#include "Audio.h"
 #include "config.h"
 #include "debug_text.h"
 #include "direct3d.h"
@@ -23,6 +24,9 @@ namespace
 	int g_ButtonHoveredTextureID = TEXTURE_INVALID_ID;
 	int g_ButtonPressedTextureID = TEXTURE_INVALID_ID;
 	int g_ButtonTextureUserCount = 0;
+	int g_UiNavigateAudioID = -1;
+	int g_UiConfirmAudioID = -1;
+	int g_UiBackAudioID = -1;
 
 	bool AcquireButtonTextures()
 	{
@@ -48,6 +52,19 @@ namespace
 				g_ButtonHoveredTextureID = TEXTURE_INVALID_ID;
 				g_ButtonPressedTextureID = TEXTURE_INVALID_ID;
 				return false;
+			}
+
+			if (g_UiNavigateAudioID < 0)
+			{
+				g_UiNavigateAudioID = LoadAudio("asset/sound/ui_navigate.wav");
+			}
+			if (g_UiConfirmAudioID < 0)
+			{
+				g_UiConfirmAudioID = LoadAudio("asset/sound/ui_confirm.wav");
+			}
+			if (g_UiBackAudioID < 0)
+			{
+				g_UiBackAudioID = LoadAudio("asset/sound/ui_back.wav");
 			}
 		}
 
@@ -128,10 +145,27 @@ namespace
 			return center_x;
 		}
 
+		const std::size_t character_count =
+			hal::DebugText::CountUtf8Characters(text.c_str());
 		const float text_width = LABEL_CHARACTER_WIDTH +
-			(static_cast<float>(text.size()) - 1.0f) * LABEL_CHARACTER_SPACING;
+			(static_cast<float>(character_count) - 1.0f) * LABEL_CHARACTER_SPACING;
 		return center_x - text_width * 0.5f;
 	}
+}
+
+void Button_PlayNavigateSound()
+{
+	PlayAudio(g_UiNavigateAudioID);
+}
+
+void Button_PlayConfirmSound()
+{
+	PlayAudio(g_UiConfirmAudioID);
+}
+
+void Button_PlayBackSound()
+{
+	PlayAudio(g_UiBackAudioID);
 }
 
 cButton::~cButton() = default;
@@ -155,6 +189,9 @@ bool cButton::Initialize(
 		std::max(size.y, 1.0f),
 	};
 	m_IsEnabled = true;
+	m_IsHovered = Contains(
+		static_cast<float>(InputMouse_GetX()),
+		static_cast<float>(InputMouse_GetY()));
 
 	const float label_x = GetCenteredTextOffsetX(m_Label, m_Center.x);
 	const float label_y = m_Center.y - LABEL_CHARACTER_HEIGHT * 0.5f;
@@ -187,6 +224,7 @@ void cButton::Finalize()
 	m_IsPressed = false;
 	m_IsSelected = false;
 	m_IsEnabled = true;
+	m_ClickSound = ButtonClickSound::Confirm;
 }
 
 bool cButton::Update()
@@ -198,9 +236,14 @@ bool cButton::Update()
 		return false;
 	}
 
+	const bool was_hovered = m_IsHovered;
 	m_IsHovered = Contains(
 		static_cast<float>(InputMouse_GetX()),
 		static_cast<float>(InputMouse_GetY()));
+	if (m_IsHovered && !was_hovered)
+	{
+		Button_PlayNavigateSound();
+	}
 
 	if (InputMouse_IsTrigger(MOUSE_BUTTON_LEFT))
 	{
@@ -215,6 +258,20 @@ bool cButton::Update()
 	if (InputMouse_IsRelease(MOUSE_BUTTON_LEFT))
 	{
 		m_IsPressed = false;
+	}
+	if (clicked)
+	{
+		switch (m_ClickSound)
+		{
+		case ButtonClickSound::Confirm:
+			Button_PlayConfirmSound();
+			break;
+		case ButtonClickSound::Back:
+			Button_PlayBackSound();
+			break;
+		case ButtonClickSound::None:
+			break;
+		}
 	}
 
 	return clicked;
@@ -272,6 +329,11 @@ void cButton::SetEnabled(bool enabled)
 		m_IsHovered = false;
 		m_IsPressed = false;
 	}
+}
+
+void cButton::SetClickSound(ButtonClickSound sound)
+{
+	m_ClickSound = sound;
 }
 
 bool cButton::IsHovered() const

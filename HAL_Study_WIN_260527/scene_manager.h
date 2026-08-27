@@ -12,6 +12,7 @@ enum class SceneID
 	Ingame,
 	GameOver,
 	Clear,
+	Count,
 };
 
 class cSceneManager : public cSingleton<cSceneManager>
@@ -33,7 +34,6 @@ private:
 	cSceneManager() = default;
 	~cSceneManager() = default;
 
-	std::unique_ptr<cScene> CreateScene(SceneID scene_id);
 	bool ApplySceneChange(SceneID scene_id);
 	void ApplyPendingSceneChange();
 

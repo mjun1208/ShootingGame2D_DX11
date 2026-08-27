@@ -1,3 +1,6 @@
+#define SPRITE_LIGHT_BUFFER_REGISTER b1
+#include "sprite_lighting.hlsli"
+
 struct PS_IN
 {
     float4 posH : SV_POSITION0;
@@ -45,6 +48,9 @@ float4 main(PS_IN ps_in) : SV_TARGET
         const float edge = 1.0f - smoothstep(0.0f, edge_width, edge_distance);
         texture_color.rgb += edge_color.rgb * edge_color.a * edge;
     }
+
+    texture_color.rgb = SpriteLighting_ApplyWorld(
+        texture_color.rgb, ps_in.posH.xy);
 
     return texture_color;
 }

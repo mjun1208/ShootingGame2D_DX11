@@ -10,10 +10,10 @@
 
 namespace
 {
-    constexpr float WAVE_OUT_DURATION = 0.38f;
-    constexpr float WAVE_RETURN_DURATION = 0.45f;
-    constexpr float STOP_HOLD_DURATION = 3.00f;
-    constexpr float RESTORE_DURATION = 0.55f;
+    constexpr float WAVE_OUT_DURATION = 0.12f;
+    constexpr float WAVE_RETURN_DURATION = 0.14f;
+    constexpr float STOP_HOLD_DURATION = 1.35f;
+    constexpr float RESTORE_DURATION = 0.16f;
     constexpr float EFFECT_DURATION = WAVE_OUT_DURATION + WAVE_RETURN_DURATION +
         STOP_HOLD_DURATION + RESTORE_DURATION;
 
@@ -359,4 +359,9 @@ void TimeStopEffect_Cancel()
 bool TimeStopEffect_IsActive()
 {
     return g_Phase != EffectPhase::Inactive;
+}
+
+bool TimeStopEffect_IsRestoring()
+{
+    return g_Phase == EffectPhase::Restore;
 }

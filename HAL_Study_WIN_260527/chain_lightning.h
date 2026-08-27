@@ -1,6 +1,8 @@
 #ifndef CHAIN_LIGHTNING_H
 #define CHAIN_LIGHTNING_H
 
+#include "sprite_lighting.h"
+
 #include <DirectXMath.h>
 
 #include <array>
@@ -19,6 +21,10 @@ public:
 		float attack_damage);
 	void Update(float delta_time);
 	void Draw() const;
+	int AppendPointLights(
+		SpritePointLight* lights,
+		int light_count,
+		int capacity) const;
 
 private:
 	struct Arc
@@ -42,6 +48,7 @@ private:
 
 	std::array<Arc, ARC_MAX> m_Arcs{};
 	std::array<int, 4> m_LightningTextureIDs{ -1, -1, -1, -1 };
+	int m_DischargeAudioID{ -1 };
 	std::uint32_t m_RandomState{ 0x4C11DB7u };
 	int m_ReplaceIndex{ 0 };
 };

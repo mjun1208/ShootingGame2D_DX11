@@ -69,6 +69,9 @@
     <ClCompile Include="sprite_instanced.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="sprite_lighting.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="application.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -96,21 +99,78 @@
     <ClCompile Include="game.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
+	<ClCompile Include="game_data_manager.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="map_data.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="player_level_game_data.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_data.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
     <ClCompile Include="game_player.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-    <ClCompile Include="bullet.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
     <ClCompile Include="game_bullet.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
+	<ClCompile Include="boss_intro_presentation.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="ingame_hud.cpp">
+	  <Filter>소스 파일\UI</Filter>
+	</ClCompile>
+	<ClCompile Include="ingame_menu_controller.cpp">
+	  <Filter>소스 파일\UI</Filter>
+	</ClCompile>
+	<ClCompile Include="scene_factory.cpp">
+	  <Filter>소스 파일\Scene</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_audio.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_fire_controller.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_inventory.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_multishot_scheduler.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_upgrade_state.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_fire_strategy.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_magic_blade.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_projectile_factory.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_shotgun.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_strategy_factory.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="weapon_strategy_registry.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
     <ClCompile Include="game_damage_text.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
     <ClCompile Include="enemy.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
+	<ClCompile Include="enemy_attack_pattern.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
     <ClCompile Include="effect.cpp">
       <Filter>소스 파일\Game</Filter>
     </ClCompile>
@@ -124,6 +184,9 @@
 	  <Filter>소스 파일\Game</Filter>
 	</ClCompile>
 	<ClCompile Include="game_experience_gem.cpp">
+	  <Filter>소스 파일\Game</Filter>
+	</ClCompile>
+	<ClCompile Include="game_healing_item.cpp">
 	  <Filter>소스 파일\Game</Filter>
 	</ClCompile>
 	<ClCompile Include="game_over_scene.cpp">
@@ -209,6 +272,9 @@
     <ClInclude Include="sprite_instanced.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="sprite_lighting.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="application.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -242,18 +308,75 @@
     <ClInclude Include="game.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
-    <ClInclude Include="bullet.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
+	<ClInclude Include="game_data_manager.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="map_data.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="json_reader.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="player_level_game_data.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_data.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
     <ClInclude Include="game_bullet.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
+	<ClInclude Include="boss_intro_presentation.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="ingame_hud.h">
+	  <Filter>헤더 파일\UI</Filter>
+	</ClInclude>
+	<ClInclude Include="ingame_menu_controller.h">
+	  <Filter>헤더 파일\UI</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_audio.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_fire_controller.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_inventory.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_multishot_scheduler.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_upgrade_state.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_fire_strategy.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_magic_blade.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_projectile_factory.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_shotgun.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_strategy_factory.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="weapon_strategy_registry.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
     <ClInclude Include="game_damage_text.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
     <ClInclude Include="enemy.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
+	<ClInclude Include="enemy_attack_pattern.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
     <ClInclude Include="effect.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
@@ -267,6 +390,9 @@
 	  <Filter>헤더 파일\Game</Filter>
 	</ClInclude>
 	<ClInclude Include="game_experience_gem.h">
+	  <Filter>헤더 파일\Game</Filter>
+	</ClInclude>
+	<ClInclude Include="game_healing_item.h">
 	  <Filter>헤더 파일\Game</Filter>
 	</ClInclude>
 	<ClInclude Include="game_over_scene.h">
@@ -299,6 +425,9 @@
     <ClInclude Include="scene_manager.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
+	<ClInclude Include="scene_factory.h">
+	  <Filter>헤더 파일\Scene</Filter>
+	</ClInclude>
     <ClInclude Include="trail.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
@@ -326,6 +455,11 @@
     <ClInclude Include="time_stop_effect.h">
       <Filter>헤더 파일\Game</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="sprite_lighting.hlsli">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader_vertex_2d.hlsl">

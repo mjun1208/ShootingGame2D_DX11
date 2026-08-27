@@ -4,23 +4,23 @@
 
 namespace Game
 {
-void Initialize()
-{
-	SceneManager_Initialize();
-}
+	void Initialize()
+	{
+		SceneManager_Initialize();
+	}
 
-void Finalize()
-{
-	SceneManager_Finalize();
-}
+	void Finalize()
+	{
+		SceneManager_Finalize();
+	}
 
-void Update(float delta_time)
-{
-	SceneManager_Update(delta_time);
-}
+	void Update(float delta_time)
+	{
+		SceneManager_Update(delta_time);
+	}
 
-void Draw()
-{
-	SceneManager_Draw();
-}
+	void Draw()
+	{
+		SceneManager_Draw();
+	}
 }

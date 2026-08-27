@@ -7,12 +7,23 @@ namespace GamePlayer
 {
 	void Initialize();
 	void Finalize();
+	void BeginEmpoweredDashMode();
+	void EndEmpoweredDashMode();
 	void RequestDash();
+	void SetSprinting(bool is_sprinting);
+	bool ConsumeEmpoweredDashAttack(
+		DirectX::XMFLOAT2& out_start,
+		DirectX::XMFLOAT2& out_end);
+	bool IsEmpoweredDashModeActive();
+	int GetEmpoweredDashCharges();
 	void Update(float delta_time);
 	void SetPosition(const DirectX::XMFLOAT2& position);
 	void SetAimTarget(const DirectX::XMFLOAT2& world_position);
 	void ApplyDamage(float damage);
+	float Heal(float amount);
 	void AddExperience(int experience);
+	void IncreaseMaxHitPoint(float amount);
+	void MultiplyMoveSpeed(float multiplier);
 	float GetHitPoint();
 	float GetMaxHitPoint();
 	int GetLevel();

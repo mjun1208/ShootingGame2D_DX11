@@ -11,6 +11,17 @@ namespace hal
 	class DebugText;
 }
 
+enum class ButtonClickSound
+{
+	Confirm,
+	Back,
+	None,
+};
+
+void Button_PlayNavigateSound();
+void Button_PlayConfirmSound();
+void Button_PlayBackSound();
+
 class cButton
 {
 public:
@@ -32,6 +43,7 @@ public:
 
 	void SetSelected(bool selected);
 	void SetEnabled(bool enabled);
+	void SetClickSound(ButtonClickSound sound);
 	bool IsHovered() const;
 	bool IsSelected() const;
 
@@ -47,6 +59,7 @@ private:
 	bool m_IsSelected{ false };
 	bool m_IsEnabled{ true };
 	bool m_HasSharedTextures{ false };
+	ButtonClickSound m_ClickSound{ ButtonClickSound::Confirm };
 };
 
 #endif // BUTTON_H

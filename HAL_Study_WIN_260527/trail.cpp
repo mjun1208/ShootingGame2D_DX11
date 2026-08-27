@@ -143,7 +143,8 @@ void TrailSystem_Draw()
 	{
 		if (!instances.empty())
 		{
-			SpriteInstanced_Draw(texture_id, instances.data(), static_cast<int>(instances.size()));
+			SpriteInstanced_DrawUnlit(
+				texture_id, instances.data(), static_cast<int>(instances.size()));
 		}
 	}
 }

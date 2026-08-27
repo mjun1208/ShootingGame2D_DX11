@@ -1,5 +1,6 @@
 #include "ingame_scene.h"
 
+#include "Audio.h"
 #include "blood.h"
 #include "config.h"
 #include "collision.h"
@@ -8,6 +9,8 @@
 #include "game_effect.h"
 #include "game_enemy.h"
 #include "game_experience_gem.h"
+#include "game_healing_item.h"
+#include "game_data_manager.h"
 #include "game_player.h"
 #include "input_keyboard.h"
 #include "input_mouse.h"
@@ -19,148 +22,199 @@
 #include "texture.h"
 #include "time_stop_effect.h"
 
+#include <Windows.h>
+
 #include <algorithm>
 #include <array>
 #include <cmath>
 
-static constexpr float PLAYER_FIRE_INTERVAL = 0.08f;
-static constexpr float PLAYER_FIRE_CAMERA_SHAKE_SIZE = 5.0f;
-static constexpr float PLAYER_FIRE_CAMERA_SHAKE_DURATION = 0.08f;
-static constexpr float ROUND_FADE_OUT_DURATION = 0.40f;
-static constexpr float ROUND_FADE_IN_DURATION = 0.45f;
-static constexpr int TOTAL_ROUND_COUNT = 4;
-static constexpr float CROSSHAIR_DRAW_SIZE = 72.0f;
-static constexpr float HEALTH_BAR_SCALE = 4.0f;
-static constexpr float HEALTH_BAR_MARGIN = 28.0f;
-static constexpr int HEALTH_BAR_TEXTURE_WIDTH = 50;
-static constexpr int HEALTH_BAR_TEXTURE_HEIGHT = 9;
-static constexpr float EXPERIENCE_BAR_GAP = 8.0f;
-static constexpr float DEATH_SHAKE_SIZE = 22.0f;
-static constexpr float DEATH_SHAKE_DURATION = 0.65f;
-static constexpr float DEATH_ZOOM = 2.4f;
-static constexpr float DEATH_ZOOM_DURATION = 1.35f;
-static constexpr float DEATH_IRIS_DELAY = 0.20f;
-static constexpr float DEATH_IRIS_DURATION = 1.35f;
-static constexpr float DEATH_IRIS_BAND_HEIGHT = 8.0f;
-static constexpr float DEATH_AFTER_ANIMATION_HOLD = 0.25f;
-static constexpr float TEST_CHEST_SPAWN_OFFSET_X = 240.0f;
-static constexpr float INTERACTION_PROMPT_DRAW_SIZE = 52.0f;
-static constexpr float INTERACTION_PROMPT_BOB_AMOUNT = 5.0f;
-static constexpr float INTERACTION_PROMPT_BOB_SPEED = 6.0f;
-
 namespace
 {
-	DirectX::XMFLOAT2 GetTestChestSpawnPosition()
+	namespace TimeStopAudio
 	{
-		const DirectX::XMFLOAT2 player_spawn =
-			ProceduralMap_GetPlayerSpawnPosition();
-		return { player_spawn.x + TEST_CHEST_SPAWN_OFFSET_X, player_spawn.y };
+		constexpr const char* ActivatePath =
+			"asset/sound/leohpaz-88-teleport-02.wav";
 	}
 
-	void DrawInteractionPrompt(
-		int texture_id,
-		const IInteractable& interactable,
-		const DirectX::XMFLOAT2& player_position,
-		float elapsed_time)
+	namespace CameraFeedback
 	{
-		if (texture_id == TEXTURE_INVALID_ID ||
-			!interactable.CanInteract(player_position))
+		constexpr float PlayerFireShakeSize = 5.0f;
+		constexpr float PlayerFireShakeDuration = 0.08f;
+		constexpr float EmpoweredDashShakeSize = 11.0f;
+		constexpr float EmpoweredDashShakeDuration = 0.16f;
+	}
+
+	namespace EmpoweredDashAttack
+	{
+		constexpr float SlashHalfWidth = 46.0f;
+		constexpr float DamagePerHit = 8.0f;
+	}
+
+	namespace RoundTransition
+	{
+		constexpr float FadeOutDuration = 0.40f;
+		constexpr float FadeInDuration = 0.45f;
+	}
+
+	namespace CameraFollow
+	{
+		constexpr float RoomCenterWeight = 0.35f;
+		constexpr float SmoothSpeed = 9.0f;
+	}
+
+	namespace DeathSequence
+	{
+		constexpr float ShakeSize = 22.0f;
+		constexpr float ShakeDuration = 0.65f;
+		constexpr float Zoom = 2.4f;
+		constexpr float ZoomDuration = 1.35f;
+		constexpr float IrisDelay = 0.20f;
+		constexpr float IrisDuration = 1.35f;
+		constexpr float IrisBandHeight = 8.0f;
+		constexpr float AfterAnimationHold = 0.25f;
+	}
+
+	namespace WorldLighting
+	{
+		struct Profile
 		{
-			return;
+			float AmbientBrightness;
+			DirectX::XMFLOAT3 DirectLightColor;
+			float DirectLightStrength;
+			float PlayerLightRadius;
+			float PlayerLightStrength;
+			DirectX::XMFLOAT3 PlayerLightColor;
+		};
+
+		Profile GetActiveProfile()
+		{
+			if (ProceduralMap_GetRound() == 1)
+			{
+				return {
+					0.86f,
+					{ 1.0f, 0.96f, 0.78f },
+					0.16f,
+					270.0f,
+					0.18f,
+					{ 1.0f, 0.92f, 0.70f },
+				};
+			}
+
+			return {
+				0.52f,
+				{ 0.78f, 0.86f, 1.0f },
+				0.14f,
+				330.0f,
+				0.88f,
+				{ 1.0f, 0.70f, 0.38f },
+			};
+		}
+	}
+
+	void ApplyWorldLighting(
+		const cChainLightning& chain_lightning,
+		const std::vector<std::unique_ptr<Chest>>& reward_chests,
+		bool portal_open,
+		const DirectX::XMFLOAT2& camera_position,
+		const DirectX::XMFLOAT2& viewport_size)
+	{
+		const WorldLighting::Profile profile =
+			WorldLighting::GetActiveProfile();
+		std::array<SpritePointLight, SPRITE_POINT_LIGHT_CAPACITY> lights{};
+		int light_count = 0;
+		lights[light_count++] = {
+			GamePlayer::GetPosition(),
+			profile.PlayerLightRadius,
+			profile.PlayerLightStrength,
+			profile.PlayerLightColor,
+		};
+		for (const std::unique_ptr<Chest>& chest : reward_chests)
+		{
+			if (!chest || light_count >= SPRITE_POINT_LIGHT_CAPACITY)
+			{
+				break;
+			}
+			SpritePointLight chest_light{};
+			if (chest->BuildPointLight(chest_light))
+			{
+				lights[light_count++] = chest_light;
+			}
+		}
+		if (portal_open && light_count < SPRITE_POINT_LIGHT_CAPACITY)
+		{
+			lights[light_count++] = {
+				ProceduralMap_GetRoundExitPosition(),
+				300.0f,
+				0.82f,
+				{ 0.48f, 0.22f, 1.0f },
+			};
+		}
+		light_count = chain_lightning.AppendPointLights(
+			lights.data(), light_count, SPRITE_POINT_LIGHT_CAPACITY);
+		light_count = GameEnemy::AppendPointLights(
+			lights.data(), light_count, SPRITE_POINT_LIGHT_CAPACITY,
+			camera_position, viewport_size);
+		light_count = cGameEffectManager::GetInstance().AppendPointLights(
+			lights.data(), light_count, SPRITE_POINT_LIGHT_CAPACITY);
+		light_count = ProceduralMap_AppendTorchLights(
+			lights.data(), light_count, SPRITE_POINT_LIGHT_CAPACITY,
+			camera_position, viewport_size);
+
+		SpriteLighting_SetWorldLighting(
+			profile.AmbientBrightness,
+			profile.DirectLightColor,
+			profile.DirectLightStrength,
+			lights.data(),
+			light_count);
+	}
+
+	void DisableWorldLighting()
+	{
+		SpriteLighting_DisableWorldLighting();
+	}
+
+	DirectX::XMFLOAT2 GetGameplayCameraTarget()
+	{
+		const DirectX::XMFLOAT2 player_position = GamePlayer::GetPosition();
+		const int room_index = ProceduralMap_GetRoomIndexAt(player_position);
+		const ProceduralMapRoom* room = ProceduralMap_GetRoom(room_index);
+		if (!room)
+		{
+			return player_position;
 		}
 
-		DirectX::XMFLOAT2 prompt_position =
-			interactable.GetInteractionPromptPosition();
-		prompt_position.y += std::sin(elapsed_time * INTERACTION_PROMPT_BOB_SPEED) *
-			INTERACTION_PROMPT_BOB_AMOUNT;
-		Sprite_DrawSized(
-			texture_id,
-			prompt_position.x,
-			prompt_position.y,
-			INTERACTION_PROMPT_DRAW_SIZE,
-			INTERACTION_PROMPT_DRAW_SIZE);
+		return {
+			player_position.x +
+				(room->Center.x - player_position.x) * CameraFollow::RoomCenterWeight,
+			player_position.y +
+				(room->Center.y - player_position.y) * CameraFollow::RoomCenterWeight };
 	}
 
-	void DrawHealthBar(int empty_texture_id, int filled_texture_id)
+	DirectX::XMFLOAT2 SmoothCameraFollow(
+		const DirectX::XMFLOAT2& current,
+		const DirectX::XMFLOAT2& target,
+		float delta_time)
 	{
-		const float draw_width = HEALTH_BAR_TEXTURE_WIDTH * HEALTH_BAR_SCALE;
-		const float draw_height = HEALTH_BAR_TEXTURE_HEIGHT * HEALTH_BAR_SCALE;
-		const float center_x = HEALTH_BAR_MARGIN + draw_width * 0.5f;
-		const float center_y = HEALTH_BAR_MARGIN + draw_height * 0.5f;
-
-		Sprite_DrawSized(
-			empty_texture_id,
-			center_x,
-			center_y,
-			draw_width,
-			draw_height);
-
-		const float max_hit_point = GamePlayer::GetMaxHitPoint();
-		const float health_ratio = max_hit_point > 0.0f ?
-			std::clamp(GamePlayer::GetHitPoint() / max_hit_point, 0.0f, 1.0f) : 0.0f;
-		const int filled_texture_width = static_cast<int>(
-			HEALTH_BAR_TEXTURE_WIDTH * health_ratio + 0.5f);
-		if (filled_texture_width <= 0)
-		{
-			return;
-		}
-
-		const float filled_draw_width = filled_texture_width * HEALTH_BAR_SCALE;
-		Sprite_DrawRegion(
-			filled_texture_id,
-			HEALTH_BAR_MARGIN + filled_draw_width * 0.5f,
-			center_y,
-			filled_draw_width,
-			draw_height,
-			0,
-			0,
-			filled_texture_width,
-			HEALTH_BAR_TEXTURE_HEIGHT,
-			{ 1.0f, 1.0f, 1.0f, 1.0f });
+		const float follow_ratio = 1.0f - std::exp(
+			-CameraFollow::SmoothSpeed * std::max(delta_time, 0.0f));
+		return {
+			current.x + (target.x - current.x) * follow_ratio,
+			current.y + (target.y - current.y) * follow_ratio };
 	}
 
-	void DrawExperienceBar(int empty_texture_id, int filled_texture_id)
-	{
-		const float draw_width = HEALTH_BAR_TEXTURE_WIDTH * HEALTH_BAR_SCALE;
-		const float draw_height = HEALTH_BAR_TEXTURE_HEIGHT * HEALTH_BAR_SCALE;
-		const float top = HEALTH_BAR_MARGIN + draw_height + EXPERIENCE_BAR_GAP;
-		const float center_x = HEALTH_BAR_MARGIN + draw_width * 0.5f;
-		const float center_y = top + draw_height * 0.5f;
 
-		Sprite_DrawSized(
-			empty_texture_id,
-			center_x,
-			center_y,
-			draw_width,
-			draw_height);
 
-		const int required_experience = GamePlayer::GetExperienceToNextLevel();
-		const float experience_ratio = required_experience > 0 ?
-			std::clamp(
-				static_cast<float>(GamePlayer::GetExperience()) /
-					static_cast<float>(required_experience),
-				0.0f,
-				1.0f) : 0.0f;
-		const int filled_texture_width = static_cast<int>(
-			HEALTH_BAR_TEXTURE_WIDTH * experience_ratio + 0.5f);
-		if (filled_texture_width <= 0)
-		{
-			return;
-		}
 
-		const float filled_draw_width = filled_texture_width * HEALTH_BAR_SCALE;
-		Sprite_DrawRegion(
-			filled_texture_id,
-			HEALTH_BAR_MARGIN + filled_draw_width * 0.5f,
-			center_y,
-			filled_draw_width,
-			draw_height,
-			0,
-			0,
-			filled_texture_width,
-			HEALTH_BAR_TEXTURE_HEIGHT,
-			{ 1.0f, 1.0f, 1.0f, 1.0f });
-	}
+
+
+
+
+
+
+
+
+
+
 
 	void DrawDeathIrisOverlay(
 		int texture_id,
@@ -188,10 +242,10 @@ namespace
 
 		for (float band_top = 0.0f;
 			band_top < viewport_size.y;
-			band_top += DEATH_IRIS_BAND_HEIGHT)
+			band_top += DeathSequence::IrisBandHeight)
 		{
 			const float band_height = std::min(
-				DEATH_IRIS_BAND_HEIGHT,
+				DeathSequence::IrisBandHeight,
 				viewport_size.y - band_top);
 			const float band_center_y = band_top + band_height * 0.5f;
 			const float distance_y = band_center_y - center.y;
@@ -231,11 +285,108 @@ namespace
 	}
 }
 
+IngameScene::~IngameScene() = default;
+
+void IngameScene::ClearRewardChests()
+{
+	if (m_ChestLockedRoomIndex >= 0)
+	{
+		ProceduralMap_ClearEncounterLock(m_ChestLockedRoomIndex);
+		m_ChestLockedRoomIndex = -1;
+	}
+	m_InitialWeaponChest = nullptr;
+	m_RoundExitRewardChest = nullptr;
+	for (const std::unique_ptr<Chest>& chest : m_RewardChests)
+	{
+		if (chest)
+		{
+			chest->Finalize();
+		}
+	}
+	m_RewardChests.clear();
+	m_RewardChestRoomIndices.clear();
+}
+
+void IngameScene::SpawnClearedRoomRewardChests()
+{
+	if (m_CurrentRound ==
+		GameDataManager::GetInstance().GetMapGameData().GetTotalRoundCount())
+	{
+		return;
+	}
+
+	const int room_count = ProceduralMap_GetRoomCount();
+	if (m_RewardedRooms.size() != static_cast<std::size_t>(room_count))
+	{
+		m_RewardedRooms.assign(room_count, false);
+	}
+
+	for (int room_index = 0; room_index < room_count; ++room_index)
+	{
+		if (m_RewardedRooms[room_index] ||
+			!GameEnemy::IsRoomCleared(room_index))
+		{
+			continue;
+		}
+
+		const ProceduralMapRoom* room = ProceduralMap_GetRoom(room_index);
+		if (!room || (!room->IsLargeRoom && !room->IsBossRoom))
+		{
+			continue;
+		}
+		m_RewardedRooms[room_index] = true;
+		std::unique_ptr<Chest> chest = std::make_unique<Chest>();
+		chest->Initialize(room->Center);
+		if (room_index == ProceduralMap_GetExitRoomIndex())
+		{
+			m_RoundExitRewardChest = chest.get();
+		}
+		m_RewardChests.push_back(std::move(chest));
+		m_RewardChestRoomIndices.push_back(room_index);
+	}
+}
+
+void IngameScene::UpdateRewardChestRoomLock()
+{
+	int active_chest_room_index = -1;
+	const std::size_t chest_count = std::min(
+		m_RewardChests.size(), m_RewardChestRoomIndices.size());
+	for (std::size_t i = 0; i < chest_count; ++i)
+	{
+		if (m_RewardChests[i] && !m_RewardChests[i]->IsGone())
+		{
+			active_chest_room_index = m_RewardChestRoomIndices[i];
+			break;
+		}
+	}
+
+	if (active_chest_room_index >= 0)
+	{
+		m_ChestLockedRoomIndex = active_chest_room_index;
+		ProceduralMap_LockEncounterRoom(active_chest_room_index);
+		return;
+	}
+
+	if (m_ChestLockedRoomIndex >= 0)
+	{
+		ProceduralMap_ClearEncounterLock(m_ChestLockedRoomIndex);
+		m_ChestLockedRoomIndex = -1;
+	}
+}
+
 void IngameScene::ResetRound(
 	int global_round,
 	bool regenerate_current)
 {
-	global_round = std::clamp(global_round, 1, TOTAL_ROUND_COUNT);
+	global_round = std::clamp(
+		global_round,
+		1,
+		GameDataManager::GetInstance().GetMapGameData().GetTotalRoundCount());
+	const bool restore_initial_weapon_chest =
+		global_round == 1 &&
+		m_CurrentRound == 1 &&
+		m_InitialWeaponChest &&
+		!m_InitialWeaponChest->IsGone();
 
 	CollisionSystem_Clear();
 	Blood::Clear();
@@ -243,8 +394,10 @@ void IngameScene::ResetRound(
 	GameBullet::Clear();
 	GameDamageText::Clear();
 	GameExperienceGem::Clear();
+	GameHealingItem::Clear();
 	cGameEffectManager::GetInstance().Clear();
 	m_ChainLightning.Clear();
+	ClearRewardChests();
 	if (regenerate_current)
 	{
 		ProceduralMap_Regenerate();
@@ -254,16 +407,27 @@ void IngameScene::ResetRound(
 		ProceduralMap_GenerateRound(global_round);
 	}
 	GameEnemy::ResetDungeon();
+	m_BossIntro.Reset();
+	m_Hud.ResetBossPresentation();
 	GamePlayer::SetPosition(ProceduralMap_GetPlayerSpawnPosition());
-	m_TestChest.Reset(GetTestChestSpawnPosition());
+	m_RewardedRooms.assign(ProceduralMap_GetRoomCount(), false);
+	if (restore_initial_weapon_chest)
+	{
+		std::unique_ptr<Chest> initial_weapon_chest = std::make_unique<Chest>();
+		initial_weapon_chest->Initialize(ProceduralMap_GetPlayerSpawnPosition());
+		m_InitialWeaponChest = initial_weapon_chest.get();
+		m_RewardChests.push_back(std::move(initial_weapon_chest));
+		m_RewardChestRoomIndices.push_back(ProceduralMap_GetStartRoomIndex());
+		UpdateRewardChestRoomLock();
+	}
 	m_RoundPortal.Reset(ProceduralMap_GetRoundExitPosition());
 	m_Camera.SetPosition(ProceduralMap_ClampCameraPosition(
-		GamePlayer::GetPosition(), m_Camera.GetScreenSize()));
+		GetGameplayCameraTarget(), m_Camera.GetScreenSize()));
 	m_CurrentRound = global_round;
-	m_FireCooldown = 0.0f;
 	m_RoundElapsedTime = 0.0f;
 	m_ShowWorldMap = false;
 	m_HasAutoAimTarget = false;
+	m_HasEnteredExitRoom = false;
 }
 
 void IngameScene::BeginRoundTransition()
@@ -277,34 +441,40 @@ void IngameScene::BeginRoundTransition()
 	m_TransitionState = RoundTransitionState::FadingOut;
 }
 
+void IngameScene::AdvanceToNextRound()
+{
+	if (m_CurrentRound >=
+		GameDataManager::GetInstance().GetMapGameData().GetTotalRoundCount())
+	{
+		SceneManager_ShowClearScene(m_RunElapsedTime);
+		return;
+	}
+
+	ResetRound(m_CurrentRound + 1, false);
+	m_FadeAlpha = 1.0f;
+	m_TransitionState = RoundTransitionState::FadingIn;
+}
+
 void IngameScene::UpdateRoundTransition(float delta_time)
 {
 	delta_time = std::max(delta_time, 0.0f);
 	if (m_TransitionState == RoundTransitionState::FadingOut)
 	{
 		m_FadeAlpha = std::min(
-			1.0f, m_FadeAlpha + delta_time / ROUND_FADE_OUT_DURATION);
+			1.0f, m_FadeAlpha + delta_time / RoundTransition::FadeOutDuration);
 		if (m_FadeAlpha < 1.0f)
 		{
 			return;
 		}
-		if (m_CurrentRound >= TOTAL_ROUND_COUNT)
-		{
-			SceneManager_ShowClearScene(m_RunElapsedTime);
-			return;
-		}
-
-		// Reward selection will be inserted between these two fade phases later.
-		ResetRound(m_CurrentRound + 1, false);
-		m_FadeAlpha = 1.0f;
-		m_TransitionState = RoundTransitionState::FadingIn;
+		// Reward selection will be inserted before this advance later.
+		AdvanceToNextRound();
 		return;
 	}
 
 	if (m_TransitionState == RoundTransitionState::FadingIn)
 	{
 		m_FadeAlpha = std::max(
-			0.0f, m_FadeAlpha - delta_time / ROUND_FADE_IN_DURATION);
+			0.0f, m_FadeAlpha - delta_time / RoundTransition::FadeInDuration);
 		if (m_FadeAlpha <= 0.0f)
 		{
 			m_TransitionState = RoundTransitionState::None;
@@ -314,7 +484,73 @@ void IngameScene::UpdateRoundTransition(float delta_time)
 
 bool IngameScene::IsRoundExitOpen() const
 {
-	return GameEnemy::IsRoundCleared();
+	const bool exit_reward_collected =
+		!m_RoundExitRewardChest || m_RoundExitRewardChest->IsGone();
+	return m_HasEnteredExitRoom &&
+		GameEnemy::IsRoundCleared() &&
+		exit_reward_collected;
+}
+
+
+void IngameScene::HandlePauseAction(IngamePauseAction action)
+{
+	switch (action)
+	{
+	case IngamePauseAction::Resume:
+		m_MenuController.ClosePause();
+		break;
+	case IngamePauseAction::Retry:
+		SceneManager_ChangeScene(SceneID::Ingame);
+		break;
+	case IngamePauseAction::Title:
+		SceneManager_ChangeScene(SceneID::Title);
+		break;
+	case IngamePauseAction::Exit:
+		if (HWND window = GetActiveWindow())
+		{
+			PostMessage(window, WM_CLOSE, 0, 0);
+		}
+		else
+		{
+			PostQuitMessage(0);
+		}
+		break;
+	case IngamePauseAction::None:
+	default:
+		break;
+	}
+}
+
+void IngameScene::ApplyAugment(const IngameAugmentSelection& selection)
+{
+	switch (selection.Choice)
+	{
+	case IngameAugmentChoice::MultiShot:
+		GameBullet::IncreaseProjectileCount(selection.WeaponType);
+		break;
+	case IngameAugmentChoice::Overdrive:
+		GameBullet::MultiplyAttackSpeed(selection.WeaponType, 1.20f);
+		break;
+	case IngameAugmentChoice::Power:
+		GameBullet::MultiplyDamage(selection.WeaponType, 1.20f);
+		break;
+	case IngameAugmentChoice::None:
+	default:
+		return;
+	}
+
+	m_LastAugmentLevel = std::min(
+		m_LastAugmentLevel + 1,
+		GamePlayer::GetLevel());
+	if (m_LastAugmentLevel < GamePlayer::GetLevel())
+	{
+		if (m_MenuController.OpenAugment())
+		{
+			return;
+		}
+		m_LastAugmentLevel = GamePlayer::GetLevel();
+	}
+	m_MenuController.CloseAugment();
 }
 
 void IngameScene::BeginDeathSequence()
@@ -334,7 +570,7 @@ void IngameScene::BeginDeathSequence()
 	GamePlayer::PrepareDeathSequence();
 	m_Camera.SetPosition(GamePlayer::GetPosition());
 	m_Camera.SetZoom(1.0f);
-	m_Camera.Shake(DEATH_SHAKE_SIZE, DEATH_SHAKE_DURATION);
+	m_Camera.Shake(DeathSequence::ShakeSize, DeathSequence::ShakeDuration);
 }
 
 void IngameScene::UpdateDeathSequence(float delta_time)
@@ -343,12 +579,12 @@ void IngameScene::UpdateDeathSequence(float delta_time)
 	m_Camera.SetPosition(GamePlayer::GetPosition());
 
 	const float zoom_progress = std::clamp(
-		m_DeathElapsedTime / DEATH_ZOOM_DURATION, 0.0f, 1.0f);
+		m_DeathElapsedTime / DeathSequence::ZoomDuration, 0.0f, 1.0f);
 	const float smooth_zoom =
 		zoom_progress * zoom_progress * (3.0f - 2.0f * zoom_progress);
-	m_Camera.SetZoom(1.0f + (DEATH_ZOOM - 1.0f) * smooth_zoom);
+	m_Camera.SetZoom(1.0f + (DeathSequence::Zoom - 1.0f) * smooth_zoom);
 
-	const float iris_end_time = DEATH_IRIS_DELAY + DEATH_IRIS_DURATION;
+	const float iris_end_time = DeathSequence::IrisDelay + DeathSequence::IrisDuration;
 	if (!m_HasDeathAnimationStarted && m_DeathElapsedTime >= iris_end_time)
 	{
 		m_HasDeathAnimationStarted = true;
@@ -362,11 +598,12 @@ void IngameScene::UpdateDeathSequence(float delta_time)
 	{
 		m_DeathAnimationFinishedElapsed += std::max(delta_time, 0.0f);
 	}
-	if (m_DeathAnimationFinishedElapsed >= DEATH_AFTER_ANIMATION_HOLD)
+	if (m_DeathAnimationFinishedElapsed >= DeathSequence::AfterAnimationHold)
 	{
 		SceneManager_ChangeScene(SceneID::GameOver);
 	}
 }
+
 
 bool IngameScene::Initialize()
 {
@@ -379,41 +616,12 @@ bool IngameScene::Initialize()
 		SpriteInstanced_Finalize();
 		return false;
 	}
-	m_CrosshairTextureID = Texture_Load(L"asset/texture/crosshair.png", false);
-	if (m_CrosshairTextureID == TEXTURE_INVALID_ID)
-	{
-		ProceduralMap_Finalize();
-		SpriteInstanced_Finalize();
-		return false;
-	}
-	m_HealthBarEmptyTextureID = Texture_Load(
-		L"asset/fantasy_pixelart_ui/special-bars/life_bar_empty.png", false);
-	m_HealthBarFilledTextureID = Texture_Load(
-		L"asset/fantasy_pixelart_ui/special-bars/life_bar_filled.png", false);
-	m_ExperienceBarEmptyTextureID = Texture_Load(
-		L"asset/fantasy_pixelart_ui/special-bars/magic_bar_empty.png", false);
-	m_ExperienceBarFilledTextureID = Texture_Load(
-		L"asset/fantasy_pixelart_ui/special-bars/magic_bar_filled.png", false);
 	m_DeathOverlayTextureID = Texture_Load(
-		L"asset/texture/map/structure/void_deep.png", false);
-	if (m_HealthBarEmptyTextureID == TEXTURE_INVALID_ID ||
-		m_HealthBarFilledTextureID == TEXTURE_INVALID_ID ||
-		m_ExperienceBarEmptyTextureID == TEXTURE_INVALID_ID ||
-		m_ExperienceBarFilledTextureID == TEXTURE_INVALID_ID ||
-		m_DeathOverlayTextureID == TEXTURE_INVALID_ID)
+		L"asset/texture/map/dungeon/structure/void_deep.png", false);
+	if (m_DeathOverlayTextureID == TEXTURE_INVALID_ID)
 	{
 		Texture_Release(m_DeathOverlayTextureID);
-		Texture_Release(m_HealthBarEmptyTextureID);
-		Texture_Release(m_HealthBarFilledTextureID);
-		Texture_Release(m_ExperienceBarEmptyTextureID);
-		Texture_Release(m_ExperienceBarFilledTextureID);
 		m_DeathOverlayTextureID = TEXTURE_INVALID_ID;
-		m_HealthBarEmptyTextureID = TEXTURE_INVALID_ID;
-		m_HealthBarFilledTextureID = TEXTURE_INVALID_ID;
-		m_ExperienceBarEmptyTextureID = TEXTURE_INVALID_ID;
-		m_ExperienceBarFilledTextureID = TEXTURE_INVALID_ID;
-		Texture_Release(m_CrosshairTextureID);
-		m_CrosshairTextureID = TEXTURE_INVALID_ID;
 		ProceduralMap_Finalize();
 		SpriteInstanced_Finalize();
 		return false;
@@ -421,17 +629,7 @@ bool IngameScene::Initialize()
 	if (!Blood::Initialize())
 	{
 		Texture_Release(m_DeathOverlayTextureID);
-		Texture_Release(m_HealthBarEmptyTextureID);
-		Texture_Release(m_HealthBarFilledTextureID);
-		Texture_Release(m_ExperienceBarEmptyTextureID);
-		Texture_Release(m_ExperienceBarFilledTextureID);
-		Texture_Release(m_CrosshairTextureID);
 		m_DeathOverlayTextureID = TEXTURE_INVALID_ID;
-		m_HealthBarEmptyTextureID = TEXTURE_INVALID_ID;
-		m_HealthBarFilledTextureID = TEXTURE_INVALID_ID;
-		m_ExperienceBarEmptyTextureID = TEXTURE_INVALID_ID;
-		m_ExperienceBarFilledTextureID = TEXTURE_INVALID_ID;
-		m_CrosshairTextureID = TEXTURE_INVALID_ID;
 		ProceduralMap_Finalize();
 		SpriteInstanced_Finalize();
 		return false;
@@ -440,17 +638,7 @@ bool IngameScene::Initialize()
 	{
 		Blood::Finalize();
 		Texture_Release(m_DeathOverlayTextureID);
-		Texture_Release(m_HealthBarEmptyTextureID);
-		Texture_Release(m_HealthBarFilledTextureID);
-		Texture_Release(m_ExperienceBarEmptyTextureID);
-		Texture_Release(m_ExperienceBarFilledTextureID);
-		Texture_Release(m_CrosshairTextureID);
 		m_DeathOverlayTextureID = TEXTURE_INVALID_ID;
-		m_HealthBarEmptyTextureID = TEXTURE_INVALID_ID;
-		m_HealthBarFilledTextureID = TEXTURE_INVALID_ID;
-		m_ExperienceBarEmptyTextureID = TEXTURE_INVALID_ID;
-		m_ExperienceBarFilledTextureID = TEXTURE_INVALID_ID;
-		m_CrosshairTextureID = TEXTURE_INVALID_ID;
 		ProceduralMap_Finalize();
 		SpriteInstanced_Finalize();
 		return false;
@@ -461,19 +649,32 @@ bool IngameScene::Initialize()
 
 	GamePlayer::Initialize();
 	GameExperienceGem::Initialize();
+	GameHealingItem::Initialize();
 	GamePlayer::SetPosition(ProceduralMap_GetPlayerSpawnPosition());
 	m_Camera.SetPosition(ProceduralMap_ClampCameraPosition(
-		GamePlayer::GetPosition(), m_Camera.GetScreenSize()));
+		GetGameplayCameraTarget(), m_Camera.GetScreenSize()));
 	GameBullet::Initialize();
 	GameEnemy::Initialize();
 	cGameEffectManager::GetInstance().Initialize();
-	m_TestChest.Initialize(GetTestChestSpawnPosition());
+	m_RewardedRooms.assign(ProceduralMap_GetRoomCount(), false);
+	std::unique_ptr<Chest> initial_weapon_chest = std::make_unique<Chest>();
+	initial_weapon_chest->Initialize(ProceduralMap_GetPlayerSpawnPosition());
+	m_InitialWeaponChest = initial_weapon_chest.get();
+	m_RewardChests.push_back(std::move(initial_weapon_chest));
+	m_RewardChestRoomIndices.push_back(ProceduralMap_GetStartRoomIndex());
+	UpdateRewardChestRoomLock();
 	m_RoundPortal.Initialize(ProceduralMap_GetRoundExitPosition());
-	m_InteractionPromptTextureID = Texture_Load(
-		L"asset/texture/ui/input/key-f.png", false);
 	GameDamageText::Initialize();
 	m_ChainLightning.Initialize();
+	m_TimeStopActivateAudioID = LoadAudio(TimeStopAudio::ActivatePath);
 	CollisionSystem_Initialize();
+	if (!m_Hud.Initialize(m_Camera.GetScreenSize()) ||
+		!m_MenuController.Initialize() ||
+		!m_BossIntro.Initialize())
+	{
+		Finalize();
+		return false;
+	}
 	m_CurrentRound = 1;
 	m_FadeAlpha = 1.0f;
 	m_DeathElapsedTime = 0.0f;
@@ -481,11 +682,13 @@ bool IngameScene::Initialize()
 	m_TransitionState = RoundTransitionState::FadingIn;
 	m_IsDeathSequenceActive = false;
 	m_HasDeathAnimationStarted = false;
-	m_FireCooldown = 0.0f;
 	m_RoundElapsedTime = 0.0f;
 	m_RunElapsedTime = 0.0f;
+	m_QSkillCooldownRemaining = 0.0f;
 	m_ShowWorldMap = false;
 	m_HasAutoAimTarget = false;
+	m_LastAugmentLevel = GamePlayer::GetLevel();
+	m_MenuController.Reset();
 	TimeStopEffect_Cancel();
 	InputMouse_SetVisible(false);
 
@@ -495,40 +698,75 @@ bool IngameScene::Initialize()
 void IngameScene::Finalize()
 {
 	TimeStopEffect_Cancel();
+	if (m_TimeStopActivateAudioID >= 0)
+	{
+		UnloadAudio(m_TimeStopActivateAudioID);
+		m_TimeStopActivateAudioID = -1;
+	}
 	InputMouse_SetVisible(true);
+	m_BossIntro.Finalize();
+	m_MenuController.Finalize();
+	m_Hud.Finalize();
 	CollisionSystem_Finalize();
 	m_ChainLightning.Finalize();
 	GameDamageText::Finalize();
 	cGameEffectManager::GetInstance().Finalize();
 	m_RoundPortal.Finalize();
-	m_TestChest.Finalize();
-	Texture_Release(m_InteractionPromptTextureID);
-	m_InteractionPromptTextureID = TEXTURE_INVALID_ID;
+	ClearRewardChests();
+	m_RewardedRooms.clear();
 	GameEnemy::Finalize();
 	GameBullet::Finalize();
+	GameHealingItem::Finalize();
 	GameExperienceGem::Finalize();
 	GamePlayer::Finalize();
 	cSlimeGoo::GetInstance().Finalize();
 	Blood::Finalize();
 	ProceduralMap_Finalize();
 	Texture_Release(m_DeathOverlayTextureID);
-	Texture_Release(m_HealthBarEmptyTextureID);
-	Texture_Release(m_HealthBarFilledTextureID);
-	Texture_Release(m_ExperienceBarEmptyTextureID);
-	Texture_Release(m_ExperienceBarFilledTextureID);
 	m_DeathOverlayTextureID = TEXTURE_INVALID_ID;
-	m_HealthBarEmptyTextureID = TEXTURE_INVALID_ID;
-	m_HealthBarFilledTextureID = TEXTURE_INVALID_ID;
-	m_ExperienceBarEmptyTextureID = TEXTURE_INVALID_ID;
-	m_ExperienceBarFilledTextureID = TEXTURE_INVALID_ID;
-	Texture_Release(m_CrosshairTextureID);
-	m_CrosshairTextureID = TEXTURE_INVALID_ID;
 	SpriteInstanced_Finalize();
 }
 
 void IngameScene::Update(float delta_time)
 {
 	m_HasAutoAimTarget = false;
+	if (m_Hud.IsWeaponUnlockPopupOpen())
+	{
+		m_Hud.UpdateWeaponUnlockPopup();
+		return;
+	}
+	ProceduralMap_Update(delta_time);
+	if (m_BossIntro.IsActive())
+	{
+		m_Camera.Update(delta_time);
+		m_BossIntro.Update(delta_time);
+		return;
+	}
+	if (m_MenuController.IsAugmentOpen())
+	{
+		ApplyAugment(m_MenuController.UpdateAugment());
+		return;
+	}
+	if (!m_IsDeathSequenceActive &&
+		GamePlayer::GetLevel() > m_LastAugmentLevel)
+	{
+		if (!m_MenuController.OpenAugment())
+		{
+			m_LastAugmentLevel = GamePlayer::GetLevel();
+		}
+		return;
+	}
+	if (m_MenuController.IsPauseOpen())
+	{
+		HandlePauseAction(m_MenuController.UpdatePause());
+		return;
+	}
+	if (!m_IsDeathSequenceActive && InputKeyboard_IsTrigger(KK_ESCAPE))
+	{
+		m_HasAutoAimTarget = false;
+		m_MenuController.OpenPause();
+		return;
+	}
 	m_Camera.Update(delta_time);
 	Blood::Update(delta_time);
 	cSlimeGoo::GetInstance().Update(delta_time);
@@ -537,14 +775,36 @@ void IngameScene::Update(float delta_time)
 		UpdateDeathSequence(delta_time);
 		return;
 	}
+	if (InputKeyboard_IsTrigger(KK_P) &&
+		m_TransitionState == RoundTransitionState::None)
+	{
+		TimeStopEffect_Cancel();
+		m_ShowWorldMap = false;
+		AdvanceToNextRound();
+		return;
+	}
+	m_QSkillCooldownRemaining = std::max(
+		0.0f,
+		m_QSkillCooldownRemaining - delta_time);
 	TimeStopEffect_Update(delta_time);
 	if (InputKeyboard_IsTrigger(KK_Q) && !TimeStopEffect_IsActive() &&
+		m_QSkillCooldownRemaining <= 0.0f &&
 		m_TransitionState == RoundTransitionState::None && !m_ShowWorldMap)
 	{
+		m_QSkillCooldownRemaining = IngameHud::GetQSkillCooldownDuration();
 		TimeStopEffect_Trigger(m_Camera.WorldToScreen(GamePlayer::GetPosition()));
+		if (m_TimeStopActivateAudioID >= 0)
+		{
+			PlayAudio(m_TimeStopActivateAudioID);
+		}
+		GamePlayer::BeginEmpoweredDashMode();
 		m_Camera.Shake(5.0f, 0.22f);
 	}
 	const bool time_stopped = TimeStopEffect_IsActive();
+	if (!time_stopped)
+	{
+		GamePlayer::EndEmpoweredDashMode();
+	}
 
 	if (!time_stopped && m_TransitionState != RoundTransitionState::None)
 	{
@@ -575,50 +835,90 @@ void IngameScene::Update(float delta_time)
 		m_RunElapsedTime += delta_time;
 	}
 
-	// Player-controlled time keeps running even while the world is stopped.
+	// Keep the existing instant dash on the initial Space press.
 	if (InputKeyboard_IsTrigger(KK_SPACE))
 	{
 		GamePlayer::RequestDash();
 	}
-	if (InputKeyboard_IsTrigger(KK_D1) || InputKeyboard_IsTrigger(KK_NUMPAD1))
-	{
-		GameBullet::SetType(BulletType::Fireball);
-	}
-	else if (InputKeyboard_IsTrigger(KK_D2) || InputKeyboard_IsTrigger(KK_NUMPAD2))
-	{
-		GameBullet::SetType(BulletType::Lightning);
-	}
-	else if (InputKeyboard_IsTrigger(KK_D3) || InputKeyboard_IsTrigger(KK_NUMPAD3))
-	{
-		GameBullet::SetType(BulletType::Piercing);
-	}
-	else if (InputKeyboard_IsTrigger(KK_D4) || InputKeyboard_IsTrigger(KK_NUMPAD4))
-	{
-		GameBullet::SetType(BulletType::All);
-	}
+
+	// Fast running is the default traversal movement everywhere except inside
+	// an uncleared room (corridors remain valid traversal space).
+	const int player_room_index = ProceduralMap_GetRoomIndexAt(
+		GamePlayer::GetPosition());
+	const bool can_sprint = player_room_index < 0 ||
+		GameEnemy::IsRoomCleared(player_room_index);
+	GamePlayer::SetSprinting(can_sprint);
 	GamePlayer::Update(delta_time);
-	m_Camera.SetPosition(ProceduralMap_ClampCameraPosition(
-		GamePlayer::GetPosition(), m_Camera.GetScreenSize()));
+	DirectX::XMFLOAT2 slash_start{};
+	DirectX::XMFLOAT2 slash_end{};
+	if (GamePlayer::ConsumeEmpoweredDashAttack(slash_start, slash_end))
+	{
+		GameEnemy::ApplyDashSlashDamage(
+			slash_start,
+			slash_end,
+			EmpoweredDashAttack::SlashHalfWidth,
+			EmpoweredDashAttack::DamagePerHit);
+		m_Camera.Shake(
+			CameraFeedback::EmpoweredDashShakeSize,
+			CameraFeedback::EmpoweredDashShakeDuration);
+	}
+	GameEnemy::UpdateDashSlashAttacks(delta_time);
+	const DirectX::XMFLOAT2 camera_target = ProceduralMap_ClampCameraPosition(
+		GetGameplayCameraTarget(), m_Camera.GetScreenSize());
+	m_Camera.SetPosition(SmoothCameraFollow(
+		m_Camera.GetPosition(), camera_target, delta_time));
 
 	if (!time_stopped)
 	{
 		GameEnemy::Update(delta_time);
-		m_TestChest.Update(delta_time);
+		if (!m_BossIntro.HasPlayed() && GameEnemy::HasPendingBossSpawn())
+		{
+			if (m_BossIntro.Begin())
+			{
+				m_HasAutoAimTarget = false;
+				m_ShowWorldMap = false;
+				TimeStopEffect_Cancel();
+				m_Camera.Shake(12.0f, 0.40f);
+				return;
+			}
+		}
+		SpawnClearedRoomRewardChests();
+		for (const std::unique_ptr<Chest>& chest : m_RewardChests)
+		{
+			if (chest)
+			{
+				chest->Update(delta_time);
+			}
+		}
+		UpdateRewardChestRoomLock();
+		BulletType unlocked_weapon = BulletType::Count;
+		if (GameBullet::ConsumeUnlockedWeapon(unlocked_weapon))
+		{
+			m_Hud.ShowWeaponUnlock(unlocked_weapon);
+		}
+		if (ProceduralMap_GetRoomIndexAt(GamePlayer::GetPosition()) ==
+			ProceduralMap_GetExitRoomIndex())
+		{
+			m_HasEnteredExitRoom = true;
+		}
 		m_RoundPortal.Update(delta_time, IsRoundExitOpen());
 
 		if (InputKeyboard_IsTrigger(KK_F))
 		{
-			const std::array<IInteractable*, 2> interactables = {
-				&m_TestChest,
-				&m_RoundPortal,
-			};
-			for (IInteractable* interactable : interactables)
+			bool interacted = false;
+			for (const std::unique_ptr<Chest>& chest : m_RewardChests)
 			{
-				if (interactable->CanInteract(GamePlayer::GetPosition()))
+				if (chest && chest->CanInteract(GamePlayer::GetPosition()))
 				{
-					interactable->Interact();
+					chest->Interact();
+					interacted = true;
 					break;
 				}
+			}
+			if (!interacted &&
+				m_RoundPortal.CanInteract(GamePlayer::GetPosition()))
+			{
+				m_RoundPortal.Interact();
 			}
 		}
 		if (m_RoundPortal.ConsumeActivation())
@@ -634,14 +934,14 @@ void IngameScene::Update(float delta_time)
 		GamePlayer::SetAimTarget(m_AutoAimTarget);
 	}
 
-	m_FireCooldown -= delta_time;
-	if (m_HasAutoAimTarget && m_FireCooldown <= 0.0f)
+	if (m_HasAutoAimTarget)
 	{
-		GameBullet::Fire(GamePlayer::GetPosition(), GamePlayer::GetAimDirection());
-		m_Camera.Shake(
-			PLAYER_FIRE_CAMERA_SHAKE_SIZE,
-			PLAYER_FIRE_CAMERA_SHAKE_DURATION);
-		m_FireCooldown = PLAYER_FIRE_INTERVAL;
+		if (GameBullet::Fire(GamePlayer::GetPosition(), m_AutoAimTarget))
+		{
+			m_Camera.Shake(
+				CameraFeedback::PlayerFireShakeSize,
+				CameraFeedback::PlayerFireShakeDuration);
+		}
 	}
 
 	// Player bullets and their feedback remain active; enemy simulation does not.
@@ -659,6 +959,7 @@ void IngameScene::Update(float delta_time)
 	if (!time_stopped)
 	{
 		GameExperienceGem::Update(delta_time, GamePlayer::GetPosition());
+		GameHealingItem::Update(delta_time, GamePlayer::GetPosition());
 	}
 	if (!time_stopped)
 	{
@@ -677,37 +978,53 @@ void IngameScene::Draw()
 
 	Sprite_SetViewMatrix(m_Camera.GetViewMatrix());
 	SpriteInstanced_SetViewMatrix(m_Camera.GetViewMatrix());
-	SpriteInstanced_DisableRadialLight();
-	SpriteInstanced_DisableDirectLight();
-	SpriteInstanced_DisablePointLights();
+	SpriteLighting_DisableRadialLight();
+	ApplyWorldLighting(
+		m_ChainLightning,
+		m_RewardChests,
+		IsRoundExitOpen(),
+		m_Camera.GetPosition(),
+		m_Camera.GetScreenSize());
 	ProceduralMap_Draw(m_Camera.GetPosition(), m_Camera.GetScreenSize());
-	m_RoundPortal.Draw();
 	cSlimeGoo::GetInstance().DrawGround();
-	GameEnemy::DrawSpawnTelegraphs();
-	m_TestChest.Draw();
+	if (!m_BossIntro.IsActive())
+	{
+		GameEnemy::DrawSpawnTelegraphs();
+	}
+	Blood::Draw();
+	m_RoundPortal.Draw();
+	for (const std::unique_ptr<Chest>& chest : m_RewardChests)
+	{
+		if (chest)
+		{
+			chest->Draw();
+		}
+	}
 	GameExperienceGem::Draw();
+	GameHealingItem::Draw();
 	if (!m_IsDeathSequenceActive && !m_ShowWorldMap &&
 		m_TransitionState == RoundTransitionState::None &&
 		!TimeStopEffect_IsActive())
 	{
-		const std::array<const IInteractable*, 2> interactables = {
-			&m_TestChest,
-			&m_RoundPortal,
-		};
-		for (const IInteractable* interactable : interactables)
+		for (const std::unique_ptr<Chest>& chest : m_RewardChests)
 		{
-			DrawInteractionPrompt(
-				m_InteractionPromptTextureID,
-				*interactable,
-				GamePlayer::GetPosition(),
-				m_RoundElapsedTime);
+			if (chest)
+			{
+				m_Hud.DrawInteractionPrompt(
+					*chest,
+					GamePlayer::GetPosition(),
+					m_RoundElapsedTime);
+			}
 		}
+		m_Hud.DrawInteractionPrompt(
+			m_RoundPortal,
+			GamePlayer::GetPosition(),
+			m_RoundElapsedTime);
 	}
 	if (!m_IsDeathSequenceActive)
 	{
 		GamePlayer::Draw();
 	}
-	Blood::Draw();
 	GameEnemy::Draw();
 	cSlimeGoo::GetInstance().DrawBurst();
 	GameBullet::Draw();
@@ -715,6 +1032,7 @@ void IngameScene::Draw()
 	m_ChainLightning.Draw();
 	GameDamageText::Draw();
 	ProceduralMap_DrawEncounterLock();
+	GameEnemy::DrawProjectiles();
 
 	if (m_IsDeathSequenceActive)
 	{
@@ -722,7 +1040,7 @@ void IngameScene::Draw()
 		const DirectX::XMFLOAT2 player_screen_position =
 			m_Camera.WorldToScreen(GamePlayer::GetPosition());
 		const float iris_progress = std::clamp(
-			(m_DeathElapsedTime - DEATH_IRIS_DELAY) / DEATH_IRIS_DURATION,
+			(m_DeathElapsedTime - DeathSequence::IrisDelay) / DeathSequence::IrisDuration,
 			0.0f,
 			1.0f);
 		const float smooth_iris =
@@ -732,6 +1050,7 @@ void IngameScene::Draw()
 				viewport_size.y * viewport_size.y) * 0.5f + 48.0f;
 		const float iris_radius = initial_radius * (1.0f - smooth_iris);
 
+		DisableWorldLighting();
 		Sprite_ResetViewMatrix();
 		SpriteInstanced_SetViewMatrix(DirectX::XMMatrixIdentity());
 		DrawDeathIrisOverlay(
@@ -746,33 +1065,25 @@ void IngameScene::Draw()
 		return;
 	}
 
+	DisableWorldLighting();
 	Sprite_ResetViewMatrix();
 	SpriteInstanced_SetViewMatrix(DirectX::XMMatrixIdentity());
 	const ProceduralMapOverviewLayout overview = ProceduralMap_DrawOverview(
-		m_Camera.GetPosition(),
 		m_Camera.GetScreenSize(),
-		m_ShowWorldMap);
-	GameEnemy::DrawMapMarkers(
-		overview.Origin, overview.WorldScale, overview.IsExpanded);
+		m_ShowWorldMap,
+		GameEnemy::IsRoomDiscovered,
+		GameEnemy::IsRoomCleared);
 	GamePlayer::DrawMapMarker(
 		overview.Origin, overview.WorldScale, overview.IsExpanded);
-	DrawHealthBar(m_HealthBarEmptyTextureID, m_HealthBarFilledTextureID);
-	DrawExperienceBar(m_ExperienceBarEmptyTextureID, m_ExperienceBarFilledTextureID);
+	const DirectX::XMFLOAT2 auto_aim_screen_position =
+		m_Camera.WorldToScreen(m_AutoAimTarget);
+	m_Hud.Draw(
+		m_QSkillCooldownRemaining,
+		m_ShowWorldMap,
+		m_BossIntro.IsActive(),
+		m_HasAutoAimTarget,
+		auto_aim_screen_position);
 	ProceduralMap_DrawFadeOverlay(m_Camera.GetScreenSize(), m_FadeAlpha);
-
-	if (m_HasAutoAimTarget)
-	{
-		const DirectX::XMFLOAT2 target_screen_position =
-			m_Camera.WorldToScreen(m_AutoAimTarget);
-		const float crosshair_x = std::clamp(
-			target_screen_position.x, 0.0f, static_cast<float>(SCREEN_WIDTH));
-		const float crosshair_y = std::clamp(
-			target_screen_position.y, 0.0f, static_cast<float>(SCREEN_HEIGHT));
-		Sprite_DrawSized(
-			m_CrosshairTextureID,
-			crosshair_x,
-			crosshair_y,
-			CROSSHAIR_DRAW_SIZE,
-			CROSSHAIR_DRAW_SIZE);
-	}
+	m_BossIntro.Draw(m_DeathOverlayTextureID);
+	m_MenuController.Draw(m_DeathOverlayTextureID);
 }

@@ -1,5 +1,6 @@
 #include "chain_lightning.h"
 
+#include "Audio.h"
 #include "game_effect.h"
 #include "game_enemy.h"
 #include "sprite_instanced.h"
@@ -17,6 +18,8 @@ namespace
 	constexpr int LIGHTNING_FRAME_COUNT = 4;
 	constexpr float ARC_LIFETIME = 0.22f;
 	constexpr float ARC_FADE_START = 0.12f;
+	constexpr const char* DISCHARGE_SOUND_PATH =
+		"asset/sound/pixabay-electric-discharge-386160.wav";
 	constexpr const wchar_t* LIGHTNING_TEXTURE_PATHS[LIGHTNING_FRAME_COUNT] = {
 		L"asset/texture/lightning/chain_lightning_01.png",
 		L"asset/texture/lightning/chain_lightning_02.png",
@@ -34,6 +37,7 @@ void cChainLightning::Initialize()
 		m_LightningTextureIDs[i] = Texture_Load(
 			LIGHTNING_TEXTURE_PATHS[i], false);
 	}
+	m_DischargeAudioID = LoadAudio(DISCHARGE_SOUND_PATH);
 }
 
 void cChainLightning::Finalize()
@@ -43,6 +47,11 @@ void cChainLightning::Finalize()
 	{
 		Texture_Release(texture_id);
 		texture_id = TEXTURE_INVALID_ID;
+	}
+	if (m_DischargeAudioID >= 0)
+	{
+		UnloadAudio(m_DischargeAudioID);
+		m_DischargeAudioID = -1;
 	}
 }
 
@@ -73,6 +82,10 @@ bool cChainLightning::TryTrigger(
 	cGameEffectManager::GetInstance().Play(
 		GameEffectType::ElectricImpact,
 		first_hit_position);
+	if (m_DischargeAudioID >= 0)
+	{
+		PlayAudio(m_DischargeAudioID);
+	}
 
 	for (int jump = 0; jump < MAX_CHAIN_JUMPS; ++jump)
 	{
@@ -196,6 +209,42 @@ void cChainLightning::Draw() const
 				static_cast<int>(frame_instances[frame].size()));
 		}
 	}
+}
+
+int cChainLightning::AppendPointLights(
+	SpritePointLight* lights,
+	int light_count,
+	int capacity) const
+{
+	if (!lights || capacity <= 0)
+	{
+		return 0;
+	}
+
+	light_count = std::clamp(light_count, 0, capacity);
+	for (const Arc& arc : m_Arcs)
+	{
+		if (!arc.IsActive || light_count >= capacity)
+		{
+			continue;
+		}
+
+		const float dx = arc.End.x - arc.Start.x;
+		const float dy = arc.End.y - arc.Start.y;
+		const float distance = std::sqrt(dx * dx + dy * dy);
+		const float fade_ratio = std::clamp(
+			(arc.Age - ARC_FADE_START) / (ARC_LIFETIME - ARC_FADE_START),
+			0.0f, 1.0f);
+		const float fade = (1.0f - fade_ratio) * (1.0f - fade_ratio);
+		lights[light_count++] = {
+			{ (arc.Start.x + arc.End.x) * 0.5f,
+			  (arc.Start.y + arc.End.y) * 0.5f },
+			std::clamp(distance * 0.62f, 190.0f, 350.0f),
+			1.08f * fade * arc.FrameBrightness,
+			{ 0.10f, 0.66f, 1.0f },
+		};
+	}
+	return light_count;
 }
 
 float cChainLightning::NextRandom01()

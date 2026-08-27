@@ -1,15 +1,20 @@
 #include "chest.h"
 
+#include "Audio.h"
+#include "game_bullet.h"
 #include "game_effect.h"
 #include "sprite.h"
 #include "texture.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace
 {
 	constexpr wchar_t CHEST_TEXTURE_PATH[] =
 		L"asset/texture/chest/chest-sheet.png";
+	constexpr char CHEST_OPEN_SOUND_PATH[] =
+		"asset/sound/chest-open-1.wav";
 	constexpr int CHEST_FRAME_WIDTH = 48;
 	constexpr int CHEST_FRAME_HEIGHT = 48;
 	constexpr int CHEST_FIRST_OPEN_FRAME = 0;
@@ -25,11 +30,17 @@ namespace
 void Chest::Initialize(const DirectX::XMFLOAT2& position)
 {
 	m_TextureID = Texture_Load(CHEST_TEXTURE_PATH, false);
+	m_OpenAudioID = LoadAudio(CHEST_OPEN_SOUND_PATH);
 	Reset(position);
 }
 
 void Chest::Finalize()
 {
+	if (m_OpenAudioID >= 0)
+	{
+		UnloadAudio(m_OpenAudioID);
+		m_OpenAudioID = -1;
+	}
 	Texture_Release(m_TextureID);
 	m_TextureID = TEXTURE_INVALID_ID;
 	m_State = State::Gone;
@@ -87,6 +98,10 @@ void Chest::Interact()
 
 	m_AnimationElapsedTime = 0.0f;
 	m_State = State::Opening;
+	if (m_OpenAudioID >= 0)
+	{
+		PlayAudio(m_OpenAudioID);
+	}
 }
 
 void Chest::Draw() const
@@ -123,9 +138,35 @@ bool Chest::IsGone() const
 	return m_State == State::Gone;
 }
 
+bool Chest::BuildPointLight(SpritePointLight& out_light) const
+{
+	if (m_State == State::Gone)
+	{
+		return false;
+	}
+
+	float opening_progress = 0.0f;
+	if (m_State == State::Opening)
+	{
+		opening_progress = std::clamp(
+			m_AnimationElapsedTime / (CHEST_FRAME_TIME * CHEST_FRAME_COUNT),
+			0.0f, 1.0f);
+	}
+	const float opening_pulse = m_State == State::Opening ?
+		0.14f * std::sin(m_AnimationElapsedTime * 28.0f) : 0.0f;
+	out_light = {
+		{ m_Position.x, m_Position.y - 12.0f },
+		235.0f + opening_progress * 85.0f,
+		0.52f + opening_progress * 0.42f + opening_pulse,
+		{ 1.0f, 0.56f, 0.14f },
+	};
+	return true;
+}
+
 void Chest::FinishOpening()
 {
 	m_State = State::Gone;
+	GameBullet::UnlockRandomWeapon();
 	cGameEffectManager::GetInstance().Play(
 		GameEffectType::SmokePoof,
 		{ m_Position.x, m_Position.y - 4.0f },

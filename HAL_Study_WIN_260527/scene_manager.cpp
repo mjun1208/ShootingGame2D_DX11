@@ -1,13 +1,10 @@
 #include "scene_manager.h"
 
-#include "clear_scene.h"
 #include "config.h"
 #include "debug_text.h"
 #include "direct3d.h"
-#include "game_over_scene.h"
-#include "ingame_scene.h"
+#include "scene_factory.h"
 #include "texture.h"
-#include "title_scene.h"
 
 #include <algorithm>
 #include <utility>
@@ -93,23 +90,6 @@ SceneID cSceneManager::GetCurrentSceneID() const
 	return m_CurrentSceneID;
 }
 
-std::unique_ptr<cScene> cSceneManager::CreateScene(SceneID scene_id)
-{
-	switch (scene_id)
-	{
-	case SceneID::Title:
-		return std::make_unique<TitleScene>();
-	case SceneID::Ingame:
-		return std::make_unique<IngameScene>();
-	case SceneID::GameOver:
-		return std::make_unique<GameOverScene>();
-	case SceneID::Clear:
-		return std::make_unique<ClearScene>(m_LastClearTimeSeconds);
-	default:
-		return nullptr;
-	}
-}
-
 bool cSceneManager::ApplySceneChange(SceneID scene_id)
 {
 	if (m_CurrentScene)
@@ -118,7 +98,8 @@ bool cSceneManager::ApplySceneChange(SceneID scene_id)
 		m_CurrentScene.reset();
 	}
 
-	auto next_scene = CreateScene(scene_id);
+	auto next_scene = SceneFactory::Create(
+		scene_id, m_LastClearTimeSeconds);
 	if (!next_scene)
 	{
 		return false;
