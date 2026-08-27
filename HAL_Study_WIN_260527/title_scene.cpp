@@ -26,7 +26,7 @@ namespace
 	constexpr char HOW_TO_BODY[] =
 		"MOVE          W A S D\n"
 		"DASH          SPACE\n"
-		"TIME STOP     Q\n"
+		"SKILL         Q\n"
 		"MAP           M\n"
 		"INTERACT      F\n"
 		"PAUSE         ESC";
