@@ -787,6 +787,7 @@ void IngameScene::Update(float delta_time)
 		UpdateDeathSequence(delta_time);
 		return;
 	}
+#ifdef _DEBUG
 	if (InputKeyboard_IsTrigger(KK_P) &&
 		m_TransitionState == RoundTransitionState::None)
 	{
@@ -795,6 +796,7 @@ void IngameScene::Update(float delta_time)
 		AdvanceToNextRound();
 		return;
 	}
+#endif
 	m_QSkillCooldownRemaining = std::max(
 		0.0f,
 		m_QSkillCooldownRemaining - delta_time);
