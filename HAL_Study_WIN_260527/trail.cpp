@@ -5,6 +5,7 @@
 #include "texture.h"
 
 #include <algorithm>
+#include <cmath>
 #include <unordered_map>
 #include <vector>
 
@@ -84,6 +85,9 @@ int TrailSystem_Emit(const cTrailDesc& desc)
 	trail.LifeTime = Trail_ClampPositive(desc.LifeTime, 0.01f);
 	trail.TextureID = desc.TextureID;
 	trail.Color = desc.Color;
+	trail.Pixelated = desc.Pixelated;
+	trail.PixelGridSize = Trail_ClampPositive(desc.PixelGridSize, 1.0f);
+	trail.FadeSteps = std::max(desc.FadeSteps, 1);
 
 	g_ActiveIndices[trail_id] = g_ActiveCount;
 	g_ActiveTrails[g_ActiveCount] = trail_id;
@@ -122,9 +126,22 @@ void TrailSystem_Draw()
 	{
 		const cTrailParticle& trail = g_TrailParticles[g_ActiveTrails[i]];
 		const float t = std::clamp(trail.Age / trail.LifeTime, 0.0f, 1.0f);
-		const float scale = Trail_Lerp(trail.StartScale, trail.EndScale, t);
+		const float stepped_t = trail.Pixelated ?
+			std::floor(t * static_cast<float>(trail.FadeSteps)) /
+				static_cast<float>(trail.FadeSteps) :
+			t;
+		float scale = Trail_Lerp(trail.StartScale, trail.EndScale, stepped_t);
 		DirectX::XMFLOAT4 color = trail.Color;
-		color.w *= Trail_EaseOut(t);
+		color.w *= Trail_EaseOut(stepped_t);
+		DirectX::XMFLOAT2 position = trail.Position;
+		if (trail.Pixelated)
+		{
+			const float grid_size = trail.PixelGridSize;
+			position.x = std::round(position.x / grid_size) * grid_size;
+			position.y = std::round(position.y / grid_size) * grid_size;
+			scale = std::round(scale * static_cast<float>(trail.FadeSteps)) /
+				static_cast<float>(trail.FadeSteps);
+		}
 
 		if (color.w <= 0.0f)
 		{
@@ -132,7 +149,7 @@ void TrailSystem_Draw()
 		}
 
 		batches[trail.TextureID].push_back({
-			trail.Position,
+			position,
 			{ trail.Width * scale, trail.Height * scale },
 			trail.Rotation,
 			color,

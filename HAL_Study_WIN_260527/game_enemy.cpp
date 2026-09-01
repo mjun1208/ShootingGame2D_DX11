@@ -397,6 +397,8 @@ namespace
 	float g_EnemyCollisionCellSize = cEnemy::RADIUS * 2.0f;
 	std::uint32_t g_BoneRandomState = 0xB04E5EEDu;
 	std::uint32_t g_OrcDamageSoundRandomState = 0x0ACD4A6Eu;
+	GameEnemy::BossDefeatPresentation g_BossDefeatPresentation{};
+	bool g_BossDefeatPresentationPending = false;
 
 	std::uint32_t Hash32(std::uint32_t value)
 	{
@@ -1014,9 +1016,8 @@ namespace
 			!EnemyAttackPattern::IsBossAttackWindow(
 				GetEnemySlotID(boss_slot)))
 		{
-			// Hold the spell until the matching attack animation begins.  This
-			// also creates a clean dodge/rest window around the cross-room dash.
-			ClearCorruptionBullets();
+			// Stop spawning while Cthulhu changes action, but let bullets already
+			// in flight finish their pattern instead of cutting them off mid-wave.
 			g_CorruptionFireCooldown = 0.0f;
 			return;
 		}
@@ -1689,6 +1690,43 @@ namespace
 		}
 	}
 
+	void QueueBossDefeatPresentation(const EnemySlot& defeated_slot)
+	{
+		if (!IsBossType(defeated_slot.Type) ||
+			std::any_of(
+				std::begin(g_EnemySlots),
+				std::end(g_EnemySlots),
+				[](const EnemySlot& slot)
+				{
+					return IsBossType(slot.Type) && slot.Entity.IsAlive();
+				}))
+		{
+			return;
+		}
+
+		const MonsterData& data = GetMonsterData(defeated_slot.Type);
+		g_BossDefeatPresentation.Position = defeated_slot.Entity.GetPosition();
+		// Keep the finale at full boss scale even when the slime encounter ends
+		// on its last, smaller split body.
+		g_BossDefeatPresentation.DrawSize = data.DrawSize;
+		g_BossDefeatPresentationPending = true;
+	}
+
+	void HandleEnemyDefeat(
+		EnemySlot& slot,
+		const DirectX::XMFLOAT2& effect_position)
+	{
+		cGameEffectManager::GetInstance().PlayEnemyDefeat(effect_position);
+		GameExperienceGem::Spawn(
+			slot.Entity.GetPosition(),
+			GetEnemyExperienceDrop(slot),
+			slot.RoomIndex);
+		GameHealingItem::TrySpawn(
+			slot.Entity.GetPosition(),
+			slot.RoomIndex);
+		QueueBossDefeatPresentation(slot);
+	}
+
 	void PlayDashSlashImpact(
 		const DirectX::XMFLOAT2& position,
 		const DirectX::XMFLOAT2& direction,
@@ -1797,15 +1835,7 @@ namespace
 				if (was_killed && !target.RewardGranted)
 				{
 					target.RewardGranted = true;
-					cGameEffectManager::GetInstance().PlayEnemyDefeat(
-						target.LastPosition);
-					GameExperienceGem::Spawn(
-						slot.Entity.GetPosition(),
-						GetEnemyExperienceDrop(slot),
-						slot.RoomIndex);
-					GameHealingItem::TrySpawn(
-						slot.Entity.GetPosition(),
-						slot.RoomIndex);
+					HandleEnemyDefeat(slot, target.LastPosition);
 				}
 			}
 
@@ -2564,14 +2594,7 @@ namespace
 			!enemy.IsAlive());
 		if (!enemy.IsAlive())
 		{
-			cGameEffectManager::GetInstance().PlayEnemyDefeat(hit_position);
-			GameExperienceGem::Spawn(
-				enemy.GetPosition(),
-				GetEnemyExperienceDrop(slot),
-				slot.RoomIndex);
-			GameHealingItem::TrySpawn(
-				enemy.GetPosition(),
-				slot.RoomIndex);
+			HandleEnemyDefeat(slot, hit_position);
 		}
 	}
 
@@ -2818,6 +2841,8 @@ void ResetDungeon()
 	g_SpawnArrivalEffects.clear();
 	g_BoneDropEffects.clear();
 	g_PendingDashSlashAttacks.clear();
+	g_BossDefeatPresentation = {};
+	g_BossDefeatPresentationPending = false;
 	ClearBossJellyBullets();
 	g_BossJellyFireCooldown = BOSS_JELLY_FIRE_INTERVAL;
 	g_BossJellyTelegraphEnemyID = -1;
@@ -3115,14 +3140,7 @@ bool ApplyChainLightningDamage(int enemy_id, float damage)
 		!enemy.IsAlive());
 	if (!enemy.IsAlive())
 	{
-		cGameEffectManager::GetInstance().PlayEnemyDefeat(hit_position);
-		GameExperienceGem::Spawn(
-			enemy.GetPosition(),
-			GetEnemyExperienceDrop(slot),
-			slot.RoomIndex);
-		GameHealingItem::TrySpawn(
-			enemy.GetPosition(),
-			slot.RoomIndex);
+		HandleEnemyDefeat(slot, hit_position);
 	}
 	return true;
 }
@@ -3241,8 +3259,40 @@ bool HasPendingBossSpawn()
 		g_PendingEnemySpawns.end(),
 		[](const PendingEnemySpawn& pending)
 		{
-			return pending.Type == MonsterType::BossSlime;
+			return IsBossType(pending.Type);
 		});
+}
+
+bool ConsumeBossDefeatPresentation(BossDefeatPresentation& out_presentation)
+{
+	if (!g_BossDefeatPresentationPending)
+	{
+		return false;
+	}
+
+	out_presentation = g_BossDefeatPresentation;
+	g_BossDefeatPresentationPending = false;
+	return true;
+}
+
+void FinishBossDefeatPresentation()
+{
+	for (int enemy_id = 0; enemy_id < ENEMY_MAX; ++enemy_id)
+	{
+		EnemySlot& slot = g_EnemySlots[enemy_id];
+		if (!IsBossType(slot.Type) || !slot.Entity.IsActive())
+		{
+			continue;
+		}
+
+		slot.Entity.Deactivate();
+		slot.RoomIndex = -1;
+		EnemyAttackPattern::OnDeactivate(enemy_id);
+	}
+
+	ClearBossJellyBullets();
+	EnemyAttackPattern::Reset(ProceduralMap_GetSeed());
+	BuildEnemyCollisionGrid();
 }
 
 bool TryGetBossHealth(float& out_hit_point, float& out_max_hit_point)

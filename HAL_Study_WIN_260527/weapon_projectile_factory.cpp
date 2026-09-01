@@ -29,7 +29,9 @@ void Initialize()
 			.Get(static_cast<std::size_t>(i));
 		g_TextureIDs[i] = Texture_Load(weapon_data.TexturePath.c_str());
 	}
-	g_TrailTextureID = Texture_Load(L"asset/texture/trail_glow.png");
+	// Projectile trails use hard-edged blocks; the trail system handles their
+	// stepped size and alpha animation.
+	g_TrailTextureID = Texture_Load(L"asset/texture/white_square.png");
 }
 
 void Finalize()

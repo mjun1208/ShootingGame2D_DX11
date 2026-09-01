@@ -13,6 +13,7 @@ enum class GameEffectType : std::uint8_t
 {
 	ElectricImpact,
 	WarmExplosion,
+	BossDeathSmallExplosion,
 	VoidImplosion,
 	EnemyDefeatSmoke,
 	SmokePoof,

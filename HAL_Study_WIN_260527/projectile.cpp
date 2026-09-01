@@ -544,58 +544,94 @@ static bool Projectile_TryBounceOffMap(
 	return true;
 }
 
-static void Projectile_EmitTrail(cProjectile& projectile, float delta_time)
+static float Projectile_GetTrailPixelBlockSize(const cProjectile& projectile)
+{
+	const float width = projectile.TrailWidth > 0.0f ?
+		projectile.TrailWidth : projectile.Width * 0.65f;
+	return std::clamp(
+		std::round(width * 0.3f * 0.5f) * 2.0f,
+		6.0f,
+		14.0f);
+}
+
+static void Projectile_EmitTrailSample(
+	const cProjectile& projectile,
+	const DirectX::XMFLOAT2& position)
+{
+	const float pixel_block_size =
+		Projectile_GetTrailPixelBlockSize(projectile);
+
+	cTrailDesc trail_desc{};
+	// Begin at the projectile center. The projectile sprite draws over this
+	// block, so the visible trail emerges directly from beneath it.
+	trail_desc.Position = position;
+	trail_desc.Width = pixel_block_size;
+	trail_desc.Height = pixel_block_size;
+	trail_desc.StartScale = projectile.TrailStartScale;
+	trail_desc.EndScale = projectile.TrailEndScale;
+	// Screen-aligned blocks keep their edges on the pixel grid. Rotating a
+	// square would reintroduce smooth diagonal edges.
+	trail_desc.Rotation = 0.0f;
+	trail_desc.LifeTime = projectile.TrailLifeTime;
+	trail_desc.TextureID = projectile.TrailTextureID != TEXTURE_INVALID_ID ?
+		projectile.TrailTextureID :
+		projectile.TextureID;
+	trail_desc.Color = projectile.TrailColor;
+	trail_desc.Pixelated = true;
+	trail_desc.PixelGridSize = 2.0f;
+	trail_desc.FadeSteps = 5;
+	TrailSystem_Emit(trail_desc);
+}
+static void Projectile_EmitTrail(
+	cProjectile& projectile,
+	const DirectX::XMFLOAT2& previous_position,
+	const DirectX::XMFLOAT2& current_position)
 {
 	if (!projectile.UsesTrail)
 	{
 		return;
 	}
 
-	projectile.TrailEmitTimer += delta_time;
-	if (projectile.TrailEmitTimer < projectile.TrailEmitInterval)
+	const float dx = current_position.x - previous_position.x;
+	const float dy = current_position.y - previous_position.y;
+	const float segment_length = std::sqrt(dx * dx + dy * dy);
+	if (segment_length <= 0.0001f)
 	{
 		return;
 	}
 
-	projectile.TrailEmitTimer -= projectile.TrailEmitInterval;
-
-	const float speed_sq =
-		projectile.Velocity.x * projectile.Velocity.x +
-		projectile.Velocity.y * projectile.Velocity.y;
-	if (speed_sq <= 0.0001f)
-	{
-		return;
-	}
-
-	const float speed = std::sqrt(speed_sq);
 	const DirectX::XMFLOAT2 move_dir = {
-		projectile.Velocity.x / speed,
-		projectile.Velocity.y / speed,
+		dx / segment_length,
+		dy / segment_length,
 	};
-	const DirectX::XMFLOAT2 behind_dir = {
-		-move_dir.x,
-		-move_dir.y,
-	};
-	const float width = projectile.TrailWidth > 0.0f ? projectile.TrailWidth : projectile.Width * 0.65f;
-	const float length = projectile.TrailLength > 0.0f ? projectile.TrailLength : projectile.Height * 1.6f;
-	const float offset = projectile.TrailOffset > 0.0f ? projectile.TrailOffset : length * 0.35f;
+	const float speed = std::sqrt(
+		projectile.Velocity.x * projectile.Velocity.x +
+		projectile.Velocity.y * projectile.Velocity.y);
+	const float configured_spacing = speed * projectile.TrailEmitInterval;
+	const float connected_spacing =
+		Projectile_GetTrailPixelBlockSize(projectile) * 0.65f;
+	const float emit_spacing = std::max(
+		std::min(configured_spacing, connected_spacing), 3.0f);
 
-	cTrailDesc trail_desc{};
-	trail_desc.Position = {
-		projectile.Position.x + behind_dir.x * offset,
-		projectile.Position.y + behind_dir.y * offset,
-	};
-	trail_desc.Width = width;
-	trail_desc.Height = length;
-	trail_desc.StartScale = projectile.TrailStartScale;
-	trail_desc.EndScale = projectile.TrailEndScale;
-	trail_desc.Rotation = std::atan2(move_dir.x, -move_dir.y);
-	trail_desc.LifeTime = projectile.TrailLifeTime;
-	trail_desc.TextureID = projectile.TrailTextureID != TEXTURE_INVALID_ID ?
-		projectile.TrailTextureID :
-		projectile.TextureID;
-	trail_desc.Color = projectile.TrailColor;
-	TrailSystem_Emit(trail_desc);
+	float distance_along_segment =
+		emit_spacing - projectile.TrailEmitDistance;
+	constexpr int MAX_EMITS_PER_UPDATE = 32;
+	int emit_count = 0;
+	while (distance_along_segment <= segment_length &&
+		emit_count < MAX_EMITS_PER_UPDATE)
+	{
+		const DirectX::XMFLOAT2 sample_position = {
+			previous_position.x + move_dir.x * distance_along_segment,
+			previous_position.y + move_dir.y * distance_along_segment,
+		};
+		Projectile_EmitTrailSample(projectile, sample_position);
+		distance_along_segment += emit_spacing;
+		++emit_count;
+	}
+
+	projectile.TrailEmitDistance = std::fmod(
+		projectile.TrailEmitDistance + segment_length,
+		emit_spacing);
 }
 
 void ProjectileSystem_Initialize()
@@ -714,7 +750,7 @@ int ProjectileSystem_Fire(const cProjectileDesc& desc)
 	projectile.UsesTrail = desc.UsesTrail;
 	projectile.TrailTextureID = desc.TrailTextureID;
 	projectile.TrailEmitInterval = Projectile_ClampPositive(desc.TrailEmitInterval, 0.02f);
-	projectile.TrailEmitTimer = 0.0f;
+	projectile.TrailEmitDistance = 0.0f;
 	projectile.TrailWidth = std::max(desc.TrailWidth, 0.0f);
 	projectile.TrailLength = std::max(desc.TrailLength, 0.0f);
 	projectile.TrailOffset = std::max(desc.TrailOffset, 0.0f);
@@ -753,7 +789,6 @@ void ProjectileSystem_Update(
 				Projectile_ResetTargetHits(projectile);
 			}
 		}
-		Projectile_EmitTrail(projectile, delta_time);
 		const DirectX::XMFLOAT2 previous_position = projectile.Position;
 		const DirectX::XMFLOAT2 next_position =
 			Projectile_GetNextPosition(projectile, delta_time, owner_position);
@@ -787,6 +822,8 @@ void ProjectileSystem_Update(
 		{
 			projectile.Position = next_position;
 		}
+		Projectile_EmitTrail(
+			projectile, previous_position, projectile.Position);
 
 		const bool is_life_over = projectile.LifeTime > 0.0f && projectile.Age >= projectile.LifeTime;
 		if (is_life_over)

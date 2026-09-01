@@ -1,5 +1,6 @@
 #include "boss_intro_presentation.h"
 
+#include "Audio.h"
 #include "config.h"
 #include "debug_text.h"
 #include "direct3d.h"
@@ -17,6 +18,8 @@ namespace
 {
 	namespace Intro
 	{
+		constexpr const char* WarningSoundPath =
+			"asset/sound/pixabay-shockwave-105526.wav";
 		constexpr int SourceY = 229;
 		constexpr int SourceWidth = 2161;
 		constexpr int SourceHeight = 251;
@@ -100,6 +103,7 @@ namespace
 struct BossIntroPresentation::Impl
 {
 	int DangerTextureID{ TEXTURE_INVALID_ID };
+	int WarningAudioID{ -1 };
 	std::unique_ptr<hal::DebugText> BossNameText;
 	float ElapsedTime{ 0.0f };
 	bool Active{ false };
@@ -122,6 +126,7 @@ bool BossIntroPresentation::Initialize()
 	{
 		return false;
 	}
+	m_Impl->WarningAudioID = LoadAudio(Intro::WarningSoundPath);
 	Reset();
 	return true;
 }
@@ -129,6 +134,8 @@ bool BossIntroPresentation::Initialize()
 void BossIntroPresentation::Finalize()
 {
 	m_Impl->BossNameText.reset();
+	UnloadAudio(m_Impl->WarningAudioID);
+	m_Impl->WarningAudioID = -1;
 	Texture_Release(m_Impl->DangerTextureID);
 	m_Impl->DangerTextureID = TEXTURE_INVALID_ID;
 	m_Impl->ElapsedTime = 0.0f;
@@ -153,6 +160,7 @@ bool BossIntroPresentation::Begin()
 	m_Impl->Played = true;
 	m_Impl->Active = true;
 	m_Impl->ElapsedTime = 0.0f;
+	PlayAudio(m_Impl->WarningAudioID);
 	return true;
 }
 

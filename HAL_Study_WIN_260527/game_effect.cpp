@@ -9,10 +9,13 @@
 namespace
 {
 	constexpr float COMBAT_EFFECT_OPACITY = 0.50f;
+	constexpr float CINEMATIC_EFFECT_OPACITY = 0.90f;
 	constexpr wchar_t ELECTRIC_IMPACT_TEXTURE_PATH[] =
 		L"asset/texture/vfx/pvfx_foundry/electric-impact/sprite-sheet.png";
 	constexpr wchar_t WARM_EXPLOSION_TEXTURE_PATH[] =
 		L"asset/texture/vfx/dryrainent/ppvfx-general-pack-1/blast_big.png";
+	constexpr wchar_t BOSS_DEATH_SMALL_EXPLOSION_TEXTURE_PATH[] =
+		L"asset/texture/vfx/dryrainent/ppvfx-general-pack-1/blast_small.png";
 	constexpr float WARM_EXPLOSION_VISIBLE_DIAMETER_RATIO = 20.0f / 32.0f;
 	constexpr wchar_t VOID_IMPLOSION_TEXTURE_PATH[] =
 		L"asset/texture/vfx/pvfx_foundry/void-implosion/sprite-sheet.png";
@@ -70,6 +73,18 @@ void cGameEffectManager::Initialize()
 		0.07f,
 		224.0f,
 		224.0f,
+		{ 0.0f, 0.0f }
+	};
+	m_Definitions[static_cast<std::size_t>(GameEffectType::BossDeathSmallExplosion)] = {
+		BOSS_DEATH_SMALL_EXPLOSION_TEXTURE_PATH,
+		TEXTURE_INVALID_ID,
+		32,
+		32,
+		7,
+		7,
+		0.055f,
+		144.0f,
+		144.0f,
 		{ 0.0f, 0.0f }
 	};
 	m_Definitions[static_cast<std::size_t>(GameEffectType::VoidImplosion)] = {
@@ -185,6 +200,8 @@ void cGameEffectManager::Initialize()
 		{ 0.18f, 0.72f, 1.0f }, 230.0f, 1.05f);
 	set_light(GameEffectType::WarmExplosion,
 		{ 1.0f, 0.42f, 0.10f }, 190.0f, 1.35f);
+	set_light(GameEffectType::BossDeathSmallExplosion,
+		{ 1.0f, 0.34f, 0.06f }, 160.0f, 1.05f);
 	set_light(GameEffectType::VoidImplosion,
 		{ 0.52f, 0.20f, 1.0f }, 210.0f, 0.90f);
 	set_light(GameEffectType::SmokePoof,
@@ -248,11 +265,16 @@ void cGameEffectManager::Draw() const
 		SpriteInstance instance{};
 		if (effect.BuildInstance(instance))
 		{
-			instance.Color.w *= COMBAT_EFFECT_OPACITY;
 			for (std::size_t type_index = 0; type_index < TYPE_COUNT; ++type_index)
 			{
 				if (m_Definitions[type_index].TextureID == effect.GetTextureID())
 				{
+					const GameEffectType type =
+						static_cast<GameEffectType>(type_index);
+					const bool cinematic =
+						type == GameEffectType::BossDeathSmallExplosion;
+					instance.Color.w *= cinematic ?
+						CINEMATIC_EFFECT_OPACITY : COMBAT_EFFECT_OPACITY;
 					batches[type_index].push_back(instance);
 					break;
 				}

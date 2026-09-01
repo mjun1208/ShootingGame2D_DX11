@@ -10,6 +10,9 @@
 #include "round_portal.h"
 #include "scene.h"
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -37,6 +40,12 @@ private:
 	void UpdateRoundTransition(float delta_time);
 	void BeginDeathSequence();
 	void UpdateDeathSequence(float delta_time);
+	bool TryBeginBossDeathPresentation();
+	void BeginBossDeathPresentation(
+		const DirectX::XMFLOAT2& position,
+		const DirectX::XMFLOAT2& draw_size);
+	void UpdateBossDeathPresentation(float delta_time);
+	float NextBossDeathRandom();
 	bool IsRoundExitOpen() const;
 	void HandlePauseAction(IngamePauseAction action);
 	void ApplyAugment(const IngameAugmentSelection& selection);
@@ -59,16 +68,31 @@ private:
 	DirectX::XMFLOAT2 m_AutoAimTarget{};
 	int m_DeathOverlayTextureID{ -1 };
 	int m_TimeStopActivateAudioID{ -1 };
+	std::array<int, 6> m_BossDeathExplosionAudioIDs{
+		-1, -1, -1, -1, -1, -1 };
+	int m_BossDeathFinalAudioID{ -1 };
 	float m_RoundElapsedTime{ 0.0f };
 	float m_RunElapsedTime{ 0.0f };
 	float m_QSkillCooldownRemaining{ 0.0f };
+	float m_PlayerFireShakeCooldownRemaining{ 0.0f };
 	int m_CurrentRound{ 1 };
 	float m_FadeAlpha{ 1.0f };
 	float m_DeathElapsedTime{ 0.0f };
 	float m_DeathAnimationFinishedElapsed{ 0.0f };
+	DirectX::XMFLOAT2 m_BossDeathPosition{};
+	DirectX::XMFLOAT2 m_BossDeathDrawSize{};
+	DirectX::XMFLOAT2 m_BossDeathCameraStartPosition{};
+	DirectX::XMFLOAT2 m_BossDeathCameraTargetPosition{};
+	float m_BossDeathElapsedTime{ 0.0f };
+	float m_BossDeathCameraStartZoom{ 1.0f };
+	std::uint32_t m_BossDeathRandomState{ 0xB055D34Du };
+	int m_BossDeathExplosionCount{ 0 };
+	std::size_t m_BossDeathExplosionAudioIndex{ 0 };
 	RoundTransitionState m_TransitionState{ RoundTransitionState::FadingIn };
 	bool m_IsDeathSequenceActive{ false };
 	bool m_HasDeathAnimationStarted{ false };
+	bool m_IsBossDeathPresentationActive{ false };
+	bool m_HasBossDeathFinalExplosionPlayed{ false };
 	bool m_ShowWorldMap{ false };
 	bool m_HasAutoAimTarget{ false };
 	bool m_HasEnteredExitRoom{ false };

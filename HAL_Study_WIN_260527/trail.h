@@ -17,6 +17,9 @@ struct cTrailDesc
 	float LifeTime{ 0.2f };
 	int TextureID{ -1 };
 	DirectX::XMFLOAT4 Color{ 1.0f, 1.0f, 1.0f, 0.5f };
+	bool Pixelated{ false };
+	float PixelGridSize{ 2.0f };
+	int FadeSteps{ 5 };
 };
 
 struct cTrailParticle
@@ -32,6 +35,9 @@ struct cTrailParticle
 	float LifeTime{ 0.2f };
 	int TextureID{ -1 };
 	DirectX::XMFLOAT4 Color{ 1.0f, 1.0f, 1.0f, 0.5f };
+	bool Pixelated{ false };
+	float PixelGridSize{ 2.0f };
+	int FadeSteps{ 5 };
 };
 
 void TrailSystem_Initialize();

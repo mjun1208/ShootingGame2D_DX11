@@ -28,6 +28,12 @@ enum class MonsterType : std::uint8_t
 
 namespace GameEnemy
 {
+	struct BossDefeatPresentation
+	{
+		DirectX::XMFLOAT2 Position{};
+		DirectX::XMFLOAT2 DrawSize{};
+	};
+
 	void Initialize();
 	void Finalize();
 	void ResetDungeon();
@@ -56,6 +62,8 @@ namespace GameEnemy
 	bool IsRoomCleared(int room_index);
 	bool IsRoundCleared();
 	bool HasPendingBossSpawn();
+	bool ConsumeBossDefeatPresentation(BossDefeatPresentation& out_presentation);
+	void FinishBossDefeatPresentation();
 	bool TryGetBossHealth(float& out_hit_point, float& out_max_hit_point);
 	const char* GetBossDisplayName();
 	void DrawSpawnTelegraphs();

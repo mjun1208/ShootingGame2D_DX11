@@ -128,7 +128,7 @@ struct cProjectile
 	bool UsesTrail{ false };
 	int TrailTextureID{ -1 };
 	float TrailEmitInterval{ 0.02f };
-	float TrailEmitTimer{ 0.0f };
+	float TrailEmitDistance{ 0.0f };
 	float TrailWidth{ 0.0f };
 	float TrailLength{ 0.0f };
 	float TrailOffset{ 0.0f };

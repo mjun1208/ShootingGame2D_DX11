@@ -38,8 +38,9 @@ namespace
 
 	namespace CameraFeedback
 	{
-		constexpr float PlayerFireShakeSize = 5.0f;
+		constexpr float PlayerFireShakeSize = 3.5f;
 		constexpr float PlayerFireShakeDuration = 0.08f;
+		constexpr float PlayerFireShakeInterval = 0.10f;
 		constexpr float EmpoweredDashShakeSize = 11.0f;
 		constexpr float EmpoweredDashShakeDuration = 0.16f;
 	}
@@ -72,6 +73,34 @@ namespace
 		constexpr float IrisDuration = 1.35f;
 		constexpr float IrisBandHeight = 8.0f;
 		constexpr float AfterAnimationHold = 0.25f;
+	}
+
+	namespace BossDeathPresentation
+	{
+		constexpr const char* ExplosionSoundPath =
+			"asset/sound/mixkit-short-explosion-1694.wav";
+		constexpr const char* FinalExplosionSoundPath =
+			"asset/sound/pixabay-shockwave-105526.wav";
+		constexpr float Zoom = 1.55f;
+		constexpr float ZoomInDuration = 0.42f;
+		constexpr float ExplosionStartTime = 0.48f;
+		constexpr int SmallExplosionCount = 20;
+		constexpr float SmallExplosionInterval = 0.07f;
+		constexpr float FinalExplosionDelay = 0.10f;
+		constexpr float FinalHoldDuration = 0.24f;
+		constexpr float ZoomOutDuration = 0.55f;
+		constexpr float SmallExplosionShakeSize = 3.0f;
+		constexpr float SmallExplosionShakeDuration = 0.08f;
+		constexpr float FinalExplosionShakeSize = 20.0f;
+		constexpr float FinalExplosionShakeDuration = 0.45f;
+
+		constexpr float FinalExplosionTime =
+			ExplosionStartTime +
+			SmallExplosionCount * SmallExplosionInterval +
+			FinalExplosionDelay;
+		constexpr float ZoomOutStartTime =
+			FinalExplosionTime + FinalHoldDuration;
+		constexpr float EndTime = ZoomOutStartTime + ZoomOutDuration;
 	}
 
 	namespace WorldLighting
@@ -423,11 +452,19 @@ void IngameScene::ResetRound(
 	m_RoundPortal.Reset(ProceduralMap_GetRoundExitPosition());
 	m_Camera.SetPosition(ProceduralMap_ClampCameraPosition(
 		GetGameplayCameraTarget(), m_Camera.GetScreenSize()));
+	m_Camera.SetZoom(1.0f);
+	m_Camera.StopShake();
 	m_CurrentRound = global_round;
 	m_RoundElapsedTime = 0.0f;
 	m_ShowWorldMap = false;
 	m_HasAutoAimTarget = false;
 	m_HasEnteredExitRoom = false;
+	m_PlayerFireShakeCooldownRemaining = 0.0f;
+	m_BossDeathElapsedTime = 0.0f;
+	m_BossDeathExplosionCount = 0;
+	m_BossDeathExplosionAudioIndex = 0;
+	m_IsBossDeathPresentationActive = false;
+	m_HasBossDeathFinalExplosionPlayed = false;
 }
 
 void IngameScene::BeginRoundTransition()
@@ -616,6 +653,189 @@ void IngameScene::UpdateDeathSequence(float delta_time)
 	}
 }
 
+bool IngameScene::TryBeginBossDeathPresentation()
+{
+	GameEnemy::BossDefeatPresentation presentation{};
+	if (!GameEnemy::ConsumeBossDefeatPresentation(presentation))
+	{
+		return false;
+	}
+
+	BeginBossDeathPresentation(
+		presentation.Position,
+		presentation.DrawSize);
+	return true;
+}
+
+void IngameScene::BeginBossDeathPresentation(
+	const DirectX::XMFLOAT2& position,
+	const DirectX::XMFLOAT2& draw_size)
+{
+	if (m_IsBossDeathPresentationActive)
+	{
+		return;
+	}
+
+	m_IsBossDeathPresentationActive = true;
+	m_HasBossDeathFinalExplosionPlayed = false;
+	m_BossDeathElapsedTime = 0.0f;
+	m_BossDeathExplosionCount = 0;
+	m_BossDeathExplosionAudioIndex = 0;
+	m_BossDeathPosition = position;
+	m_BossDeathDrawSize = {
+		std::max(draw_size.x, 160.0f),
+		std::max(draw_size.y, 160.0f),
+	};
+	m_BossDeathCameraStartPosition = m_Camera.GetPosition();
+	m_BossDeathCameraTargetPosition = ProceduralMap_ClampCameraPosition(
+		m_BossDeathPosition,
+		m_Camera.GetScreenSize());
+	m_BossDeathCameraStartZoom = m_Camera.GetZoom();
+	m_BossDeathRandomState = 0xB055D34Du ^ ProceduralMap_GetSeed() ^
+		(static_cast<std::uint32_t>(m_CurrentRound) * 0x9e3779b9u);
+	m_ShowWorldMap = false;
+	m_HasAutoAimTarget = false;
+	TimeStopEffect_Cancel();
+	GameBullet::Clear();
+	m_ChainLightning.Clear();
+	m_Camera.StopShake();
+	m_Camera.Shake(7.0f, 0.16f);
+}
+
+float IngameScene::NextBossDeathRandom()
+{
+	m_BossDeathRandomState ^= m_BossDeathRandomState << 13;
+	m_BossDeathRandomState ^= m_BossDeathRandomState >> 17;
+	m_BossDeathRandomState ^= m_BossDeathRandomState << 5;
+	return static_cast<float>(m_BossDeathRandomState & 0x00ffffffu) /
+		static_cast<float>(0x00ffffffu);
+}
+
+void IngameScene::UpdateBossDeathPresentation(float delta_time)
+{
+	const float safe_delta_time = std::max(delta_time, 0.0f);
+	m_BossDeathElapsedTime += safe_delta_time;
+
+	auto smooth_step = [](float amount)
+	{
+		const float t = std::clamp(amount, 0.0f, 1.0f);
+		return t * t * (3.0f - 2.0f * t);
+	};
+	auto lerp_position = [](
+		const DirectX::XMFLOAT2& from,
+		const DirectX::XMFLOAT2& to,
+		float amount)
+	{
+		return DirectX::XMFLOAT2{
+			from.x + (to.x - from.x) * amount,
+			from.y + (to.y - from.y) * amount,
+		};
+	};
+
+	if (m_BossDeathElapsedTime < BossDeathPresentation::ZoomInDuration)
+	{
+		const float zoom_amount = smooth_step(
+			m_BossDeathElapsedTime / BossDeathPresentation::ZoomInDuration);
+		m_Camera.SetPosition(lerp_position(
+			m_BossDeathCameraStartPosition,
+			m_BossDeathCameraTargetPosition,
+			zoom_amount));
+		m_Camera.SetZoom(
+			m_BossDeathCameraStartZoom +
+			(BossDeathPresentation::Zoom - m_BossDeathCameraStartZoom) *
+			zoom_amount);
+	}
+	else if (m_BossDeathElapsedTime >= BossDeathPresentation::ZoomOutStartTime)
+	{
+		const float zoom_amount = smooth_step(
+			(m_BossDeathElapsedTime - BossDeathPresentation::ZoomOutStartTime) /
+			BossDeathPresentation::ZoomOutDuration);
+		m_Camera.SetPosition(lerp_position(
+			m_BossDeathCameraTargetPosition,
+			m_BossDeathCameraStartPosition,
+			zoom_amount));
+		m_Camera.SetZoom(
+			BossDeathPresentation::Zoom +
+			(m_BossDeathCameraStartZoom - BossDeathPresentation::Zoom) *
+			zoom_amount);
+	}
+	else
+	{
+		m_Camera.SetPosition(m_BossDeathCameraTargetPosition);
+		m_Camera.SetZoom(BossDeathPresentation::Zoom);
+	}
+
+	cGameEffectManager& effects = cGameEffectManager::GetInstance();
+	while (m_BossDeathExplosionCount <
+		BossDeathPresentation::SmallExplosionCount &&
+		m_BossDeathElapsedTime >=
+			BossDeathPresentation::ExplosionStartTime +
+			m_BossDeathExplosionCount *
+				BossDeathPresentation::SmallExplosionInterval)
+	{
+		const float angle = NextBossDeathRandom() * DirectX::XM_2PI;
+		const float radius = std::sqrt(NextBossDeathRandom());
+		const DirectX::XMFLOAT2 explosion_position{
+			m_BossDeathPosition.x + std::cos(angle) * radius *
+				m_BossDeathDrawSize.x * 0.43f,
+			m_BossDeathPosition.y + std::sin(angle) * radius *
+				m_BossDeathDrawSize.y * 0.39f,
+		};
+		const float boss_scale = std::clamp(
+			std::min(m_BossDeathDrawSize.x, m_BossDeathDrawSize.y) /
+				320.0f,
+			0.72f,
+			1.20f);
+		const float explosion_scale = boss_scale *
+			(0.76f + NextBossDeathRandom() * 0.48f);
+		effects.Play(
+			GameEffectType::BossDeathSmallExplosion,
+			explosion_position,
+			explosion_scale,
+			{ 1.0f, 0.84f + NextBossDeathRandom() * 0.16f,
+				0.72f, 1.0f },
+			NextBossDeathRandom() * DirectX::XM_2PI);
+
+		const int audio_id = m_BossDeathExplosionAudioIDs[
+			m_BossDeathExplosionAudioIndex %
+			m_BossDeathExplosionAudioIDs.size()];
+		if (audio_id >= 0)
+		{
+			PlayAudio(audio_id);
+		}
+		++m_BossDeathExplosionAudioIndex;
+		++m_BossDeathExplosionCount;
+		m_Camera.Shake(
+			BossDeathPresentation::SmallExplosionShakeSize,
+			BossDeathPresentation::SmallExplosionShakeDuration);
+	}
+
+	if (!m_HasBossDeathFinalExplosionPlayed &&
+		m_BossDeathElapsedTime >= BossDeathPresentation::FinalExplosionTime)
+	{
+		m_HasBossDeathFinalExplosionPlayed = true;
+		const float final_radius = std::max(
+			m_BossDeathDrawSize.x,
+			m_BossDeathDrawSize.y) * 0.58f;
+		effects.PlayAreaExplosion(m_BossDeathPosition, final_radius);
+		if (m_BossDeathFinalAudioID >= 0)
+		{
+			PlayAudio(m_BossDeathFinalAudioID);
+		}
+		m_Camera.Shake(
+			BossDeathPresentation::FinalExplosionShakeSize,
+			BossDeathPresentation::FinalExplosionShakeDuration);
+		GameEnemy::FinishBossDefeatPresentation();
+	}
+
+	if (m_BossDeathElapsedTime >= BossDeathPresentation::EndTime)
+	{
+		m_IsBossDeathPresentationActive = false;
+		m_Camera.SetPosition(m_BossDeathCameraStartPosition);
+		m_Camera.SetZoom(m_BossDeathCameraStartZoom);
+	}
+}
+
 
 bool IngameScene::Initialize()
 {
@@ -679,6 +899,12 @@ bool IngameScene::Initialize()
 	GameDamageText::Initialize();
 	m_ChainLightning.Initialize();
 	m_TimeStopActivateAudioID = LoadAudio(TimeStopAudio::ActivatePath);
+	for (int& audio_id : m_BossDeathExplosionAudioIDs)
+	{
+		audio_id = LoadAudio(BossDeathPresentation::ExplosionSoundPath);
+	}
+	m_BossDeathFinalAudioID = LoadAudio(
+		BossDeathPresentation::FinalExplosionSoundPath);
 	CollisionSystem_Initialize();
 	if (!m_Hud.Initialize(m_Camera.GetScreenSize()) ||
 		!m_MenuController.Initialize() ||
@@ -691,12 +917,18 @@ bool IngameScene::Initialize()
 	m_FadeAlpha = 1.0f;
 	m_DeathElapsedTime = 0.0f;
 	m_DeathAnimationFinishedElapsed = 0.0f;
+	m_BossDeathElapsedTime = 0.0f;
+	m_BossDeathExplosionCount = 0;
+	m_BossDeathExplosionAudioIndex = 0;
 	m_TransitionState = RoundTransitionState::FadingIn;
 	m_IsDeathSequenceActive = false;
 	m_HasDeathAnimationStarted = false;
+	m_IsBossDeathPresentationActive = false;
+	m_HasBossDeathFinalExplosionPlayed = false;
 	m_RoundElapsedTime = 0.0f;
 	m_RunElapsedTime = 0.0f;
 	m_QSkillCooldownRemaining = 0.0f;
+	m_PlayerFireShakeCooldownRemaining = 0.0f;
 	m_ShowWorldMap = false;
 	m_HasAutoAimTarget = false;
 	m_LastAugmentLevel = GamePlayer::GetLevel();
@@ -710,6 +942,19 @@ bool IngameScene::Initialize()
 void IngameScene::Finalize()
 {
 	TimeStopEffect_Cancel();
+	for (int& audio_id : m_BossDeathExplosionAudioIDs)
+	{
+		if (audio_id >= 0)
+		{
+			UnloadAudio(audio_id);
+			audio_id = -1;
+		}
+	}
+	if (m_BossDeathFinalAudioID >= 0)
+	{
+		UnloadAudio(m_BossDeathFinalAudioID);
+		m_BossDeathFinalAudioID = -1;
+	}
 	if (m_TimeStopActivateAudioID >= 0)
 	{
 		UnloadAudio(m_TimeStopActivateAudioID);
@@ -748,6 +993,13 @@ void IngameScene::Update(float delta_time)
 		return;
 	}
 	ProceduralMap_Update(delta_time);
+	if (m_IsBossDeathPresentationActive)
+	{
+		m_Camera.Update(delta_time);
+		UpdateBossDeathPresentation(delta_time);
+		cGameEffectManager::GetInstance().Update(delta_time);
+		return;
+	}
 	if (m_BossIntro.IsActive())
 	{
 		m_Camera.Update(delta_time);
@@ -780,6 +1032,9 @@ void IngameScene::Update(float delta_time)
 		return;
 	}
 	m_Camera.Update(delta_time);
+	m_PlayerFireShakeCooldownRemaining = std::max(
+		0.0f,
+		m_PlayerFireShakeCooldownRemaining - std::max(delta_time, 0.0f));
 	Blood::Update(delta_time);
 	cSlimeGoo::GetInstance().Update(delta_time);
 	if (m_IsDeathSequenceActive)
@@ -877,6 +1132,10 @@ void IngameScene::Update(float delta_time)
 			CameraFeedback::EmpoweredDashShakeDuration);
 	}
 	GameEnemy::UpdateDashSlashAttacks(delta_time);
+	if (TryBeginBossDeathPresentation())
+	{
+		return;
+	}
 	const DirectX::XMFLOAT2 camera_target = ProceduralMap_ClampCameraPosition(
 		GetGameplayCameraTarget(), m_Camera.GetScreenSize());
 	m_Camera.SetPosition(SmoothCameraFollow(
@@ -952,9 +1211,14 @@ void IngameScene::Update(float delta_time)
 	{
 		if (GameBullet::Fire(GamePlayer::GetPosition(), m_AutoAimTarget))
 		{
-			m_Camera.Shake(
-				CameraFeedback::PlayerFireShakeSize,
-				CameraFeedback::PlayerFireShakeDuration);
+			if (m_PlayerFireShakeCooldownRemaining <= 0.0f)
+			{
+				m_Camera.Shake(
+					CameraFeedback::PlayerFireShakeSize,
+					CameraFeedback::PlayerFireShakeDuration);
+				m_PlayerFireShakeCooldownRemaining =
+					CameraFeedback::PlayerFireShakeInterval;
+			}
 		}
 	}
 
@@ -970,6 +1234,10 @@ void IngameScene::Update(float delta_time)
 	GamePlayer::RegisterCollider();
 	CollisionSystem_Update();
 	GameEnemy::HandleCollisionHits(m_ChainLightning);
+	if (TryBeginBossDeathPresentation())
+	{
+		return;
+	}
 	if (!time_stopped)
 	{
 		GameExperienceGem::Update(delta_time, GamePlayer::GetPosition());
@@ -1016,7 +1284,8 @@ void IngameScene::Draw()
 	}
 	GameExperienceGem::Draw();
 	GameHealingItem::Draw();
-	if (!m_IsDeathSequenceActive && !m_ShowWorldMap &&
+	if (!m_IsDeathSequenceActive && !m_IsBossDeathPresentationActive &&
+		!m_ShowWorldMap &&
 		m_TransitionState == RoundTransitionState::None &&
 		!TimeStopEffect_IsActive())
 	{
@@ -1041,12 +1310,21 @@ void IngameScene::Draw()
 	}
 	GameEnemy::Draw();
 	cSlimeGoo::GetInstance().DrawBurst();
-	GameBullet::Draw();
+	if (!m_IsBossDeathPresentationActive)
+	{
+		GameBullet::Draw();
+	}
 	cGameEffectManager::GetInstance().Draw();
-	m_ChainLightning.Draw();
-	GameDamageText::Draw();
+	if (!m_IsBossDeathPresentationActive)
+	{
+		m_ChainLightning.Draw();
+		GameDamageText::Draw();
+	}
 	ProceduralMap_DrawEncounterLock();
-	GameEnemy::DrawProjectiles();
+	if (!m_IsBossDeathPresentationActive)
+	{
+		GameEnemy::DrawProjectiles();
+	}
 
 	if (m_IsDeathSequenceActive)
 	{
@@ -1094,7 +1372,7 @@ void IngameScene::Draw()
 	m_Hud.Draw(
 		m_QSkillCooldownRemaining,
 		m_ShowWorldMap,
-		m_BossIntro.IsActive(),
+		m_BossIntro.IsActive() || m_IsBossDeathPresentationActive,
 		m_HasAutoAimTarget,
 		auto_aim_screen_position);
 	ProceduralMap_DrawFadeOverlay(m_Camera.GetScreenSize(), m_FadeAlpha);
