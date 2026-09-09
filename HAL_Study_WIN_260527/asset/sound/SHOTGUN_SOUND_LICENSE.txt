@@ -1,8 +1,0 @@
-Saiga 12k Gunshot (12ga) (Pixabay media ID 94496)
-Creator: Kobrakon47 / Freesound Community
-Source: https://pixabay.com/sound-effects/film-special-effects-saiga-12k-gunshot12ga-94496/
-License: Pixabay Content License
-License summary: https://pixabay.com/service/license-summary/
-
-The original MP3 was converted to a 44.1 kHz, mono, 16-bit PCM WAV and
-trimmed to 0.68 seconds for use as the shotgun firing sound in this game.

@@ -69,9 +69,20 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <ProjectSourceIncludeDirectories>$(ProjectDir);$(ProjectDir)Engine\Core;$(ProjectDir)Engine\Graphics;$(ProjectDir)Engine\Input;$(ProjectDir)Engine\Audio;$(ProjectDir)Game\Enemy;$(ProjectDir)Game\Weapon;$(ProjectDir)Game\Map;$(ProjectDir)Game\Player;$(ProjectDir)Game\Combat;$(ProjectDir)Game\Effects;$(ProjectDir)Game\Items;$(ProjectDir)Scene;$(ProjectDir)UI;$(ProjectDir)ThirdParty</ProjectSourceIncludeDirectories>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetName>DungeonSurvivor</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectSourceIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -88,6 +99,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectSourceIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -106,6 +118,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectSourceIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -128,6 +141,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectSourceIncludeDirectories);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -149,145 +163,151 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="application.cpp" />
-    <ClCompile Include="Audio.cpp" />
-	<ClCompile Include="blood.cpp" />
-    <ClCompile Include="button.cpp" />
-    <ClCompile Include="camera.cpp" />
-	<ClCompile Include="boss_intro_presentation.cpp" />
-    <ClCompile Include="chain_lightning.cpp" />
-	<ClCompile Include="chest.cpp" />
-	<ClCompile Include="round_portal.cpp" />
-    <ClCompile Include="clear_scene.cpp" />
-    <ClCompile Include="collision.cpp" />
-    <ClCompile Include="debug_text.cpp" />
-    <ClCompile Include="direct3d.cpp" />
-    <ClCompile Include="effect.cpp" />
-    <ClCompile Include="enemy.cpp" />
-	<ClCompile Include="enemy_attack_pattern.cpp" />
-    <ClCompile Include="game.cpp" />
-	<ClCompile Include="game_data_manager.cpp" />
-	<ClCompile Include="map_data.cpp" />
-    <ClCompile Include="game_bullet.cpp" />
-	<ClCompile Include="weapon_audio.cpp" />
-	<ClCompile Include="weapon_fire_controller.cpp" />
-	<ClCompile Include="weapon_fire_strategy.cpp" />
-	<ClCompile Include="weapon_inventory.cpp" />
-	<ClCompile Include="weapon_magic_blade.cpp" />
-	<ClCompile Include="weapon_multishot_scheduler.cpp" />
-	<ClCompile Include="weapon_projectile_factory.cpp" />
-	<ClCompile Include="weapon_shotgun.cpp" />
-	<ClCompile Include="weapon_strategy_factory.cpp" />
-	<ClCompile Include="weapon_strategy_registry.cpp" />
-	<ClCompile Include="weapon_upgrade_state.cpp" />
-    <ClCompile Include="game_damage_text.cpp" />
-    <ClCompile Include="game_effect.cpp" />
-    <ClCompile Include="game_enemy.cpp" />
-	<ClCompile Include="monster_data.cpp" />
-	<ClCompile Include="player_level_game_data.cpp" />
-	<ClCompile Include="weapon_data.cpp" />
-	<ClCompile Include="game_experience_gem.cpp" />
-	<ClCompile Include="game_healing_item.cpp" />
-	<ClCompile Include="game_over_scene.cpp" />
-    <ClCompile Include="game_player.cpp" />
-    <ClCompile Include="input_keyboard.cpp" />
-    <ClCompile Include="input_mouse.cpp" />
-    <ClCompile Include="input_xinput.cpp" />
-    <ClCompile Include="keyboard.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="mouse.cpp" />
-    <ClCompile Include="polygon.cpp" />
-    <ClCompile Include="procedural_map.cpp" />
-    <ClCompile Include="projectile.cpp" />
-    <ClCompile Include="ingame_scene.cpp" />
-	<ClCompile Include="ingame_hud.cpp" />
-	<ClCompile Include="ingame_menu_controller.cpp" />
-    <ClCompile Include="scene_manager.cpp" />
-	<ClCompile Include="scene_factory.cpp" />
-    <ClCompile Include="shader.cpp" />
-	<ClCompile Include="slime_goo.cpp" />
-    <ClCompile Include="sprite.cpp" />
-    <ClCompile Include="sprite_instanced.cpp" />
-    <ClCompile Include="sprite_lighting.cpp" />
-    <ClCompile Include="system_timer.cpp" />
-    <ClCompile Include="texture.cpp" />
-    <ClCompile Include="time_stop_effect.cpp" />
-    <ClCompile Include="title_scene.cpp" />
-    <ClCompile Include="trail.cpp" />
-    <ClCompile Include="WICTextureLoader11.cpp" />
+    <ClCompile Include="Engine\Core\application.cpp" />
+    <ClCompile Include="Engine\Audio\Audio.cpp" />
+    <ClCompile Include="Engine\Audio\bgm.cpp" />
+    <ClCompile Include="UI\button.cpp" />
+	<ClCompile Include="UI\button_menu_controller.cpp" />
+    <ClCompile Include="Engine\Graphics\camera.cpp" />
+	<ClCompile Include="Scene\ingame_presentations.cpp" />
+    <ClCompile Include="Game\Effects\chain_lightning.cpp" />
+    <ClCompile Include="Game\Effects\time_stop_effect.cpp" />
+	<ClCompile Include="Game\Items\game_items.cpp" />
+    <ClCompile Include="Scene\ending_scenes.cpp" />
+    <ClCompile Include="Engine\Core\collision.cpp" />
+	<ClCompile Include="Engine\Core\file_utils.cpp" />
+	<ClCompile Include="Engine\Core\math_utils.cpp" />
+	<ClCompile Include="Engine\Core\random_utils.cpp" />
+    <ClCompile Include="Engine\Graphics\bitmap_text.cpp" />
+    <ClCompile Include="Engine\Graphics\direct3d.cpp" />
+    <ClCompile Include="Game\Effects\effect.cpp" />
+	<ClCompile Include="Game\Effects\game_effect.cpp" />
+	<ClCompile Include="Game\Effects\blood.cpp" />
+	<ClCompile Include="Game\Effects\game_damage_text.cpp" />
+    <ClCompile Include="Game\Enemy\enemy.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_attack_pattern.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_attack_projectile.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_patterns_basic.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_pattern_cthulhu.cpp" />
+	<ClCompile Include="Game\Player\game_data_manager.cpp" />
+	<ClCompile Include="Game\Map\map_data.cpp" />
+    <ClCompile Include="Game\Combat\game_bullet.cpp" />
+	<ClCompile Include="Game\Weapon\weapon_audio.cpp" />
+	<ClCompile Include="Game\Weapon\weapon_fire_system.cpp" />
+	<ClCompile Include="Game\Weapon\weapon_projectile_system.cpp" />
+    <ClCompile Include="Game\Enemy\game_enemy.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_boss_pattern.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_death_effects.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_spatial.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_encounter.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_combat.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_renderer.cpp" />
+	<ClCompile Include="Game\Enemy\enemy_collision.cpp" />
+	<ClCompile Include="Game\Enemy\monster_data.cpp" />
+	<ClCompile Include="Game\Player\player_level_game_data.cpp" />
+	<ClCompile Include="Game\Weapon\weapon_data_system.cpp" />
+    <ClCompile Include="Game\Player\game_player.cpp" />
+    <ClCompile Include="Engine\Input\input_devices.cpp" />
+    <ClCompile Include="Engine\Input\legacy_input.cpp" />
+    <ClCompile Include="Engine\Core\main.cpp" />
+    <ClCompile Include="Game\Map\map_generation.cpp" />
+	<ClCompile Include="Game\Map\map_rendering.cpp" />
+	<ClCompile Include="Game\Map\map_collision.cpp" />
+    <ClCompile Include="Game\Combat\projectile.cpp" />
+    <ClCompile Include="Scene\ingame_scene.cpp" />
+	<ClCompile Include="UI\ingame_hud.cpp" />
+	<ClCompile Include="UI\ingame_menu_controller.cpp" />
+    <ClCompile Include="Scene\scene_system.cpp" />
+    <ClCompile Include="Engine\Graphics\shader.cpp" />
+	<ClCompile Include="Game\Effects\slime_goo.cpp" />
+	<ClCompile Include="Game\Effects\trail.cpp" />
+    <ClCompile Include="Engine\Graphics\sprite.cpp" />
+    <ClCompile Include="Engine\Graphics\sprite_instanced.cpp" />
+    <ClCompile Include="Engine\Graphics\sprite_lighting.cpp" />
+    <ClCompile Include="Engine\Core\system_timer.cpp" />
+    <ClCompile Include="Engine\Graphics\texture.cpp" />
+    <ClCompile Include="Scene\title_scene.cpp" />
+    <ClCompile Include="ThirdParty\WICTextureLoader11.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="application.h" />
-    <ClInclude Include="Audio.h" />
-	<ClInclude Include="blood.h" />
-    <ClInclude Include="button.h" />
-	<ClInclude Include="boss_intro_presentation.h" />
-    <ClInclude Include="camera.h" />
-    <ClInclude Include="chain_lightning.h" />
-	<ClInclude Include="chest.h" />
-	<ClInclude Include="round_portal.h" />
-    <ClInclude Include="clear_scene.h" />
-    <ClInclude Include="collision.h" />
-    <ClInclude Include="config.h" />
-    <ClInclude Include="debug_ostream.h" />
-    <ClInclude Include="debug_text.h" />
-    <ClInclude Include="direct3d.h" />
-    <ClInclude Include="effect.h" />
-    <ClInclude Include="enemy.h" />
-	<ClInclude Include="enemy_attack_pattern.h" />
-    <ClInclude Include="game.h" />
-	<ClInclude Include="game_data_manager.h" />
-	<ClInclude Include="map_data.h" />
-	<ClInclude Include="json_reader.h" />
-    <ClInclude Include="game_bullet.h" />
-	<ClInclude Include="weapon_audio.h" />
-	<ClInclude Include="weapon_fire_controller.h" />
-	<ClInclude Include="weapon_fire_strategy.h" />
-	<ClInclude Include="weapon_inventory.h" />
-	<ClInclude Include="weapon_magic_blade.h" />
-	<ClInclude Include="weapon_multishot_scheduler.h" />
-	<ClInclude Include="weapon_projectile_factory.h" />
-	<ClInclude Include="weapon_shotgun.h" />
-	<ClInclude Include="weapon_strategy_factory.h" />
-	<ClInclude Include="weapon_strategy_registry.h" />
-	<ClInclude Include="weapon_upgrade_state.h" />
-    <ClInclude Include="game_damage_text.h" />
-    <ClInclude Include="game_effect.h" />
-    <ClInclude Include="game_enemy.h" />
-	<ClInclude Include="monster_data.h" />
-	<ClInclude Include="player_level_game_data.h" />
-	<ClInclude Include="weapon_data.h" />
-	<ClInclude Include="game_experience_gem.h" />
-	<ClInclude Include="game_healing_item.h" />
-	<ClInclude Include="game_over_scene.h" />
-    <ClInclude Include="game_player.h" />
-    <ClInclude Include="input_keyboard.h" />
-    <ClInclude Include="input_mouse.h" />
-    <ClInclude Include="input_xinput.h" />
-	<ClInclude Include="interactable.h" />
-	<ClInclude Include="scene_factory.h" />
-    <ClInclude Include="keyboard.h" />
-    <ClInclude Include="mouse.h" />
-    <ClInclude Include="polygon.h" />
-    <ClInclude Include="procedural_map.h" />
-    <ClInclude Include="projectile.h" />
-    <ClInclude Include="ingame_scene.h" />
-	<ClInclude Include="ingame_hud.h" />
-	<ClInclude Include="ingame_menu_controller.h" />
-    <ClInclude Include="scene.h" />
-    <ClInclude Include="scene_manager.h" />
-    <ClInclude Include="shader.h" />
-    <ClInclude Include="singleton.h" />
-	<ClInclude Include="slime_goo.h" />
-    <ClInclude Include="sprite.h" />
-    <ClInclude Include="sprite_instanced.h" />
-    <ClInclude Include="sprite_lighting.h" />
-    <ClInclude Include="system_timer.h" />
-    <ClInclude Include="texture.h" />
-    <ClInclude Include="time_stop_effect.h" />
-    <ClInclude Include="title_scene.h" />
-    <ClInclude Include="trail.h" />
-    <ClInclude Include="WICTextureLoader11.h" />
+    <ClInclude Include="Engine\Core\application.h" />
+    <ClInclude Include="Engine\Audio\Audio.h" />
+    <ClInclude Include="Engine\Audio\bgm.h" />
+	<ClInclude Include="Game\Effects\blood.h" />
+    <ClInclude Include="UI\button.h" />
+	<ClInclude Include="UI\button_menu_controller.h" />
+	<ClInclude Include="Scene\boss_intro_presentation.h" />
+	<ClInclude Include="Scene\ingame_combat_presentation.h" />
+    <ClInclude Include="Engine\Graphics\camera.h" />
+    <ClInclude Include="Game\Effects\chain_lightning.h" />
+	<ClInclude Include="Game\Items\chest.h" />
+	<ClInclude Include="Game\Items\round_portal.h" />
+    <ClInclude Include="Scene\ending_scene.h" />
+    <ClInclude Include="Engine\Core\collision.h" />
+    <ClInclude Include="Engine\Core\config.h" />
+	<ClInclude Include="Engine\Core\file_utils.h" />
+	<ClInclude Include="Engine\Core\math_utils.h" />
+	<ClInclude Include="Engine\Core\random_utils.h" />
+    <ClInclude Include="Engine\Core\debug_ostream.h" />
+    <ClInclude Include="Engine\Graphics\bitmap_text.h" />
+    <ClInclude Include="Engine\Graphics\direct3d.h" />
+    <ClInclude Include="Game\Effects\effect.h" />
+    <ClInclude Include="Game\Enemy\enemy.h" />
+	<ClInclude Include="Game\Enemy\enemy_attack_pattern.h" />
+	<ClInclude Include="Game\Enemy\enemy_attack_pattern_internal.h" />
+	<ClInclude Include="Game\Player\game_data_manager.h" />
+	<ClInclude Include="Game\Map\map_data.h" />
+	<ClInclude Include="Engine\Core\json_reader.h" />
+    <ClInclude Include="Game\Combat\game_bullet.h" />
+	<ClInclude Include="Game\Weapon\weapon_audio.h" />
+	<ClInclude Include="Game\Weapon\weapon_fire_controller.h" />
+	<ClInclude Include="Game\Weapon\weapon_fire_context.h" />
+	<ClInclude Include="Game\Weapon\weapon_inventory.h" />
+	<ClInclude Include="Game\Weapon\weapon_magic_blade.h" />
+	<ClInclude Include="Game\Weapon\weapon_multishot_scheduler.h" />
+	<ClInclude Include="Game\Weapon\weapon_projectile_factory.h" />
+	<ClInclude Include="Game\Weapon\weapon_upgrade_state.h" />
+    <ClInclude Include="Game\Effects\game_damage_text.h" />
+    <ClInclude Include="Game\Effects\game_effect.h" />
+    <ClInclude Include="Game\Enemy\game_enemy.h" />
+	<ClInclude Include="Game\Enemy\game_enemy_internal.h" />
+	<ClInclude Include="Game\Enemy\monster_type.h" />
+	<ClInclude Include="Game\Enemy\monster_data.h" />
+	<ClInclude Include="Game\Player\player_level_game_data.h" />
+	<ClInclude Include="Game\Weapon\weapon_data.h" />
+	<ClInclude Include="Game\Items\game_experience_gem.h" />
+	<ClInclude Include="Game\Items\game_healing_item.h" />
+	<ClInclude Include="Game\Player\game_player.h" />
+    <ClInclude Include="Engine\Input\input_keyboard.h" />
+    <ClInclude Include="Engine\Input\input_mouse.h" />
+    <ClInclude Include="Engine\Input\input_xinput.h" />
+	<ClInclude Include="Game\Items\interactable.h" />
+    <ClInclude Include="Engine\Input\keyboard.h" />
+    <ClInclude Include="Engine\Input\mouse.h" />
+	<ClInclude Include="Engine\Graphics\render_state_utils.h" />
+    <ClInclude Include="Game\Map\procedural_map.h" />
+	<ClInclude Include="Game\Map\procedural_map_internal.h" />
+    <ClInclude Include="Game\Combat\projectile.h" />
+    <ClInclude Include="Scene\ingame_scene.h" />
+	<ClInclude Include="UI\panel_draw.h" />
+	<ClInclude Include="UI\ingame_hud.h" />
+	<ClInclude Include="UI\ingame_menu_controller.h" />
+    <ClInclude Include="Scene\scene.h" />
+    <ClInclude Include="Scene\scene_manager.h" />
+    <ClInclude Include="Engine\Graphics\shader.h" />
+    <ClInclude Include="Engine\Core\singleton.h" />
+	<ClInclude Include="Engine\Core\indexed_slot_pool.h" />
+	<ClInclude Include="Game\Effects\slime_goo.h" />
+    <ClInclude Include="Engine\Graphics\sprite.h" />
+    <ClInclude Include="Engine\Graphics\sprite_region.h" />
+    <ClInclude Include="Engine\Graphics\sprite_instanced.h" />
+    <ClInclude Include="Engine\Graphics\sprite_lighting.h" />
+    <ClInclude Include="Engine\Core\system_timer.h" />
+    <ClInclude Include="Engine\Graphics\texture.h" />
+    <ClInclude Include="Game\Effects\time_stop_effect.h" />
+    <ClInclude Include="Scene\title_scene.h" />
+    <ClInclude Include="Game\Effects\trail.h" />
+    <ClInclude Include="ThirdParty\WICTextureLoader11.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="sprite_lighting.hlsli" />
@@ -317,6 +337,14 @@
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>
+    <FxCompile Include="shader_vertex_cut_2d.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="shader_pixel_cut_2d.hlsl">
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
     <FxCompile Include="shader_pixel_lightning.hlsl">
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.0</ShaderModel>
@@ -330,7 +358,24 @@
       <ShaderModel>5.0</ShaderModel>
     </FxCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="game.rc" />
+    <ClInclude Include="resource.h" />
+    <Image Include="Resources\game.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <ClInclude Include="Constants\player_constants.h" />
+    <ClInclude Include="Constants\enemy_pattern_constants.h" />
+    <ClInclude Include="Constants\enemy_constants.h" />
+    <ClInclude Include="Constants\map_constants.h" />
+    <ClInclude Include="Constants\weapon_constants.h" />
+    <ClInclude Include="Constants\item_constants.h" />
+    <ClInclude Include="Constants\hud_constants.h" />
+    <ClInclude Include="Constants\menu_constants.h" />
+    <ClInclude Include="Constants\presentation_constants.h" />
+    <ClInclude Include="Constants\scene_constants.h" />
+  </ItemGroup>
 </Project>

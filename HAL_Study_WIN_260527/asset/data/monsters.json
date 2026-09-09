@@ -2,7 +2,7 @@
   "monsters": [
     {
       "id": "slime",
-      "texture": "asset/texture/slime_pack/green_blob.png",
+      "texture": "asset/texture/character/monster/slime/green_blob.png",
       "hp": 16.0,
       "moveSpeed": 120.0,
       "drawSize": [96.0, 96.0],
@@ -18,7 +18,7 @@
     },
     {
       "id": "skeleton_base",
-      "texture": "asset/Mobs/Skeleton Crew/Skeleton - Base/Run/Run-Sheet.png",
+      "texture": "asset/texture/character/monster/Skeleton Crew/Skeleton - Base/Run/Run-Sheet.png",
       "hp": 16.0,
       "moveSpeed": 125.0,
       "drawSize": [192.0, 192.0],
@@ -34,7 +34,7 @@
     },
     {
       "id": "skeleton_mage",
-      "texture": "asset/Mobs/Skeleton Crew/Skeleton - Mage/Run/Run-Sheet.png",
+      "texture": "asset/texture/character/monster/Skeleton Crew/Skeleton - Mage/Run/Run-Sheet.png",
       "hp": 24.0,
       "moveSpeed": 92.0,
       "drawSize": [192.0, 192.0],
@@ -50,7 +50,7 @@
     },
     {
       "id": "skeleton_rogue",
-      "texture": "asset/Mobs/Skeleton Crew/Skeleton - Rogue/Run/Run-Sheet.png",
+      "texture": "asset/texture/character/monster/Skeleton Crew/Skeleton - Rogue/Run/Run-Sheet.png",
       "hp": 24.0,
       "moveSpeed": 125.0,
       "drawSize": [192.0, 192.0],
@@ -66,7 +66,7 @@
     },
     {
       "id": "skeleton_warrior",
-      "texture": "asset/Mobs/Skeleton Crew/Skeleton - Warrior/Run/Run-Sheet.png",
+      "texture": "asset/texture/character/monster/Skeleton Crew/Skeleton - Warrior/Run/Run-Sheet.png",
       "hp": 24.0,
       "moveSpeed": 230.0,
       "drawSize": [192.0, 192.0],
@@ -82,7 +82,7 @@
     },
     {
       "id": "bat",
-      "texture": "asset/monster/02_bat/02_bat_purple_fly.png",
+      "texture": "asset/texture/character/monster/02_bat/02_bat_purple_fly.png",
       "hp": 12.0,
       "moveSpeed": 155.0,
       "drawSize": [48.0, 48.0],
@@ -98,7 +98,7 @@
     },
     {
       "id": "orc",
-      "texture": "asset/Mobs/Orc Crew/Orc/Run/Run-Sheet.png",
+      "texture": "asset/texture/character/monster/Orc Crew/Orc/Run/Run-Sheet.png",
       "hp": 40.0,
       "moveSpeed": 110.0,
       "drawSize": [192.0, 192.0],
@@ -114,7 +114,7 @@
     },
     {
       "id": "orc_rogue",
-      "texture": "asset/Mobs/Orc Crew/Orc - Rogue/Run/Run-Sheet.png",
+      "texture": "asset/texture/character/monster/Orc Crew/Orc - Rogue/Run/Run-Sheet.png",
       "hp": 30.0,
       "moveSpeed": 140.0,
       "drawSize": [192.0, 192.0],
@@ -130,7 +130,7 @@
     },
     {
       "id": "orc_shaman",
-      "texture": "asset/Mobs/Orc Crew/Orc - Shaman/Run/Run-Sheet.png",
+      "texture": "asset/texture/character/monster/Orc Crew/Orc - Shaman/Run/Run-Sheet.png",
       "hp": 34.0,
       "moveSpeed": 115.0,
       "drawSize": [192.0, 192.0],
@@ -146,7 +146,7 @@
     },
     {
       "id": "orc_warrior",
-      "texture": "asset/Mobs/Orc Crew/Orc - Warrior/Run/Run-Sheet.png",
+      "texture": "asset/texture/character/monster/Orc Crew/Orc - Warrior/Run/Run-Sheet.png",
       "hp": 55.0,
       "moveSpeed": 145.0,
       "drawSize": [192.0, 192.0],
@@ -162,7 +162,7 @@
     },
     {
       "id": "boss_slime",
-      "texture": "asset/texture/slime_pack/red_blob.png",
+      "texture": "asset/texture/character/monster/slime/red_blob.png",
       "hp": 800.0,
       "moveSpeed": 55.0,
       "drawSize": [320.0, 320.0],
@@ -178,7 +178,7 @@
     },
     {
       "id": "boss_corrupted_knight",
-      "texture": "asset/npc/Knight/Run/Run-Sheet.png",
+      "texture": "asset/texture/character/monster/Knight/Run/Run-Sheet.png",
       "hp": 1050.0,
       "moveSpeed": 92.0,
       "drawSize": [320.0, 320.0],
@@ -194,7 +194,7 @@
     },
     {
       "id": "boss_corrupted_mage",
-      "texture": "asset/npc/Wizzard/Run/Run-Sheet.png",
+      "texture": "asset/texture/character/monster/Wizzard/Run/Run-Sheet.png",
       "hp": 1250.0,
       "moveSpeed": 70.0,
       "drawSize": [320.0, 320.0],
@@ -210,8 +210,8 @@
     },
     {
       "id": "boss_cthulhu",
-      "texture": "asset/npc/Cthulhu/animations/cthulu_192x112_SpriteSheet.png",
-      "hp": 1800.0,
+      "texture": "asset/texture/character/monster/Cthulhu/animations/cthulu_192x112_SpriteSheet.png",
+      "hp": 5200.0,
       "moveSpeed": 62.0,
       "drawSize": [480.0, 280.0],
       "aimOffset": [0.0, 18.0],

@@ -1,0 +1,13 @@
+# Preserve attributed sources and third-party code.
+HAL_Study_WIN_260527/ThirdParty/**
+HAL_Study_WIN_260527/Engine/Core/debug_ostream.h
+HAL_Study_WIN_260527/Engine/Core/system_timer.cpp
+HAL_Study_WIN_260527/Engine/Core/system_timer.h
+HAL_Study_WIN_260527/Engine/Graphics/bitmap_text.cpp
+HAL_Study_WIN_260527/Engine/Graphics/bitmap_text.h
+HAL_Study_WIN_260527/Engine/Graphics/shader.cpp
+HAL_Study_WIN_260527/Engine/Graphics/shader.h
+HAL_Study_WIN_260527/Engine/Input/input_devices.cpp
+HAL_Study_WIN_260527/Engine/Input/input_keyboard.h
+HAL_Study_WIN_260527/Engine/Input/input_mouse.h
+HAL_Study_WIN_260527/Engine/Input/input_xinput.h

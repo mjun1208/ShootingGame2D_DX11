@@ -1,0 +1,24 @@
+BasedOnStyle: Microsoft
+BreakBeforeBraces: Allman
+InsertBraces: true
+BraceWrapping:
+  AfterCaseLabel: true
+NamespaceIndentation: All
+UseTab: ForIndentation
+IndentWidth: 4
+TabWidth: 4
+ColumnLimit: 120
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortLambdasOnASingleLine: None
+Cpp11BracedListStyle: false
+SeparateDefinitionBlocks: Leave
+SortIncludes: Never
+SortUsingDeclarations: Never
+FixNamespaceComments: false
+ReflowComments: false
+PointerAlignment: Left
+DerivePointerAlignment: false
+LineEnding: CRLF

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="소스 파일">
@@ -22,11 +22,29 @@
     <Filter Include="헤더 파일\Game">
       <UniqueIdentifier>{ebaafaa0-23bf-4422-983f-a6507458a0ce}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\Game\Enemy">
+      <UniqueIdentifier>{1d0d29db-6a55-4da0-b4b0-d81777f1da18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Game\Map">
+      <UniqueIdentifier>{8a17588f-4f9b-46a2-a85d-a614f1b76042}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Game\Weapon">
+      <UniqueIdentifier>{b0b307db-4c95-44a2-8d9c-38b423030ea5}</UniqueIdentifier>
+    </Filter>
     <Filter Include="소스 파일\Input">
       <UniqueIdentifier>{bba15034-1e4c-4199-8aeb-61010a57b622}</UniqueIdentifier>
     </Filter>
     <Filter Include="소스 파일\Game">
       <UniqueIdentifier>{3466a964-2598-4899-b87b-ecc546f0303b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Game\Enemy">
+      <UniqueIdentifier>{e6f5ddcc-c80d-4bbb-8803-201131e90dd1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Game\Map">
+      <UniqueIdentifier>{232897ec-5e64-45d9-90f7-b549242574f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Game\Weapon">
+      <UniqueIdentifier>{e706150b-7d69-422c-98aa-bdb0ca9f2504}</UniqueIdentifier>
     </Filter>
     <Filter Include="소스 파일\Scene">
       <UniqueIdentifier>{5d046264-a1b2-44cc-9639-bbd0b6131d11}</UniqueIdentifier>
@@ -40,420 +58,495 @@
     <Filter Include="헤더 파일\UI">
       <UniqueIdentifier>{d35ad93a-2c39-4e2f-a762-f54776684f84}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\Engine\Core">
+      <UniqueIdentifier>{0b82d106-1b7e-4e74-91ce-5400ef52b921}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Engine\Graphics">
+      <UniqueIdentifier>{b6de8503-59ea-453f-b91f-b8cd034e4274}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Engine\Input">
+      <UniqueIdentifier>{c82b66fa-ee24-41e2-8a03-934d195f3fcb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Engine\Audio">
+      <UniqueIdentifier>{86d8f94d-708c-40df-9181-e9bd566158de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Game\Player">
+      <UniqueIdentifier>{d79bf515-1cc2-49d4-8b1e-f0b8eacdb6f1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Game\Combat">
+      <UniqueIdentifier>{d3c1d90a-55e9-4d97-8e92-9bc9ebadeada}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Game\Effects">
+      <UniqueIdentifier>{16956cf4-4817-4a7a-a5b2-4d231b609524}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\Game\Items">
+      <UniqueIdentifier>{22b3b5fc-2e4e-4f97-9cf2-14e87a378cf4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\ThirdParty">
+      <UniqueIdentifier>{82ee3d12-bf13-4da5-844e-b0882da8691f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Engine\Core">
+      <UniqueIdentifier>{954307d3-a6e9-4680-9768-88b844e83d70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Engine\Graphics">
+      <UniqueIdentifier>{c972892c-0d80-41a6-866c-ff2f7bd35f39}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Engine\Input">
+      <UniqueIdentifier>{b8a1b1bb-99eb-4d9f-965d-1069bdbb90d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Engine\Audio">
+      <UniqueIdentifier>{242172d0-1c1b-4fe0-a826-da5ec2b9d08b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Game\Player">
+      <UniqueIdentifier>{9e0d24e9-9043-4f42-bf2c-f11b3d0bc9d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Game\Combat">
+      <UniqueIdentifier>{54705042-ea29-4787-9792-6839b8525f21}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Game\Effects">
+      <UniqueIdentifier>{c26f8424-0fdd-4a7d-aa78-2c114b4f3e3f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Game\Items">
+      <UniqueIdentifier>{c017ca6e-0009-45c9-a759-c24d70f39290}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\ThirdParty">
+      <UniqueIdentifier>{5e176d0a-5d9a-45af-97a4-0c2b7a111b64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="헤더 파일\Constants">
+      <UniqueIdentifier>{A4E573D0-E2B2-4B14-AC98-24E453853CC0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="Engine\Core\main.cpp">
+      <Filter>소스 파일\Engine\Core</Filter>
     </ClCompile>
-    <ClCompile Include="direct3d.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="Engine\Graphics\direct3d.cpp">
+      <Filter>소스 파일\Engine\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="shader.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="Engine\Graphics\shader.cpp">
+      <Filter>소스 파일\Engine\Graphics</Filter>
     </ClCompile>
-    <ClCompile Include="polygon.cpp">
-      <Filter>소스 파일</Filter>
+    <ClCompile Include="Game\Map\map_generation.cpp">
+      <Filter>소스 파일\Game\Map</Filter>
     </ClCompile>
-    <ClCompile Include="procedural_map.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-    <ClCompile Include="WICTextureLoader11.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="texture.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="sprite.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="sprite_instanced.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="sprite_lighting.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="application.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="system_timer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="debug_text.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="keyboard.cpp">
-      <Filter>소스 파일\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="mouse.cpp">
-      <Filter>소스 파일\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="input_xinput.cpp">
-      <Filter>소스 파일\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="input_mouse.cpp">
-      <Filter>소스 파일\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="input_keyboard.cpp">
-      <Filter>소스 파일\Input</Filter>
-    </ClCompile>
-    <ClCompile Include="game.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-	<ClCompile Include="game_data_manager.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Map\map_rendering.cpp">
+	  <Filter>소스 파일\Game\Map</Filter>
 	</ClCompile>
-	<ClCompile Include="map_data.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Map\map_collision.cpp">
+	  <Filter>소스 파일\Game\Map</Filter>
 	</ClCompile>
-	<ClCompile Include="player_level_game_data.cpp">
-	  <Filter>소스 파일\Game</Filter>
-	</ClCompile>
-	<ClCompile Include="weapon_data.cpp">
-	  <Filter>소스 파일\Game</Filter>
-	</ClCompile>
-    <ClCompile Include="game_player.cpp">
-      <Filter>소스 파일\Game</Filter>
+    <ClCompile Include="ThirdParty\WICTextureLoader11.cpp">
+      <Filter>소스 파일\ThirdParty</Filter>
     </ClCompile>
-    <ClCompile Include="game_bullet.cpp">
-      <Filter>소스 파일\Game</Filter>
+    <ClCompile Include="Engine\Graphics\texture.cpp">
+      <Filter>소스 파일\Engine\Graphics</Filter>
     </ClCompile>
-	<ClCompile Include="boss_intro_presentation.cpp">
-	  <Filter>소스 파일\Game</Filter>
+    <ClCompile Include="Engine\Graphics\sprite.cpp">
+      <Filter>소스 파일\Engine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\sprite_instanced.cpp">
+      <Filter>소스 파일\Engine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\sprite_lighting.cpp">
+      <Filter>소스 파일\Engine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\application.cpp">
+      <Filter>소스 파일\Engine\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Core\system_timer.cpp">
+      <Filter>소스 파일\Engine\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\bitmap_text.cpp">
+      <Filter>소스 파일\Engine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Input\legacy_input.cpp">
+      <Filter>소스 파일\Engine\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Input\input_devices.cpp">
+      <Filter>소스 파일\Engine\Input</Filter>
+    </ClCompile>
+	<ClCompile Include="Game\Player\game_data_manager.cpp">
+	  <Filter>소스 파일\Game\Player</Filter>
 	</ClCompile>
-	<ClCompile Include="ingame_hud.cpp">
-	  <Filter>소스 파일\UI</Filter>
+	<ClCompile Include="Game\Map\map_data.cpp">
+	  <Filter>소스 파일\Game\Map</Filter>
 	</ClCompile>
-	<ClCompile Include="ingame_menu_controller.cpp">
-	  <Filter>소스 파일\UI</Filter>
+	<ClCompile Include="Game\Player\player_level_game_data.cpp">
+	  <Filter>소스 파일\Game\Player</Filter>
 	</ClCompile>
-	<ClCompile Include="scene_factory.cpp">
+	<ClCompile Include="Game\Weapon\weapon_data_system.cpp">
+	  <Filter>소스 파일\Game\Weapon</Filter>
+	</ClCompile>
+    <ClCompile Include="Game\Player\game_player.cpp">
+      <Filter>소스 파일\Game\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Combat\game_bullet.cpp">
+      <Filter>소스 파일\Game\Combat</Filter>
+    </ClCompile>
+	<ClCompile Include="Scene\ingame_presentations.cpp">
 	  <Filter>소스 파일\Scene</Filter>
 	</ClCompile>
-	<ClCompile Include="weapon_audio.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="UI\ingame_hud.cpp">
+	  <Filter>소스 파일\UI</Filter>
 	</ClCompile>
-	<ClCompile Include="weapon_fire_controller.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="UI\ingame_menu_controller.cpp">
+	  <Filter>소스 파일\UI</Filter>
 	</ClCompile>
-	<ClCompile Include="weapon_inventory.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Weapon\weapon_audio.cpp">
+	  <Filter>소스 파일\Game\Weapon</Filter>
 	</ClCompile>
-	<ClCompile Include="weapon_multishot_scheduler.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Weapon\weapon_fire_system.cpp">
+	  <Filter>소스 파일\Game\Weapon</Filter>
 	</ClCompile>
-	<ClCompile Include="weapon_upgrade_state.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Weapon\weapon_projectile_system.cpp">
+	  <Filter>소스 파일\Game\Weapon</Filter>
 	</ClCompile>
-	<ClCompile Include="weapon_fire_strategy.cpp">
-	  <Filter>소스 파일\Game</Filter>
-	</ClCompile>
-	<ClCompile Include="weapon_magic_blade.cpp">
-	  <Filter>소스 파일\Game</Filter>
-	</ClCompile>
-	<ClCompile Include="weapon_projectile_factory.cpp">
-	  <Filter>소스 파일\Game</Filter>
-	</ClCompile>
-	<ClCompile Include="weapon_shotgun.cpp">
-	  <Filter>소스 파일\Game</Filter>
-	</ClCompile>
-	<ClCompile Include="weapon_strategy_factory.cpp">
-	  <Filter>소스 파일\Game</Filter>
-	</ClCompile>
-	<ClCompile Include="weapon_strategy_registry.cpp">
-	  <Filter>소스 파일\Game</Filter>
-	</ClCompile>
-    <ClCompile Include="game_damage_text.cpp">
-      <Filter>소스 파일\Game</Filter>
+    <ClCompile Include="Game\Enemy\enemy.cpp">
+      <Filter>소스 파일\Game\Enemy</Filter>
     </ClCompile>
-    <ClCompile Include="enemy.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-	<ClCompile Include="enemy_attack_pattern.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Enemy\enemy_attack_pattern.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
 	</ClCompile>
-    <ClCompile Include="effect.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-    <ClCompile Include="game_effect.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-    <ClCompile Include="game_enemy.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-	<ClCompile Include="monster_data.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Enemy\enemy_attack_projectile.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
 	</ClCompile>
-	<ClCompile Include="game_experience_gem.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Enemy\enemy_patterns_basic.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
 	</ClCompile>
-	<ClCompile Include="game_healing_item.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Enemy\enemy_pattern_cthulhu.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
 	</ClCompile>
-	<ClCompile Include="game_over_scene.cpp">
-	  <Filter>소스 파일\Scene</Filter>
+    <ClCompile Include="Game\Effects\effect.cpp">
+      <Filter>소스 파일\Game\Effects</Filter>
+    </ClCompile>
+	<ClCompile Include="Game\Effects\game_effect.cpp">
+	  <Filter>소스 파일\Game\Effects</Filter>
 	</ClCompile>
-    <ClCompile Include="camera.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-    <ClCompile Include="chain_lightning.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-	<ClCompile Include="chest.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Effects\blood.cpp">
+	  <Filter>소스 파일\Game\Effects</Filter>
 	</ClCompile>
-	<ClCompile Include="round_portal.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Effects\game_damage_text.cpp">
+	  <Filter>소스 파일\Game\Effects</Filter>
 	</ClCompile>
-    <ClCompile Include="collision.cpp">
-      <Filter>소스 파일\Game</Filter>
+    <ClCompile Include="Game\Enemy\game_enemy.cpp">
+      <Filter>소스 파일\Game\Enemy</Filter>
     </ClCompile>
-    <ClCompile Include="projectile.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-    <ClCompile Include="scene_manager.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-    <ClCompile Include="trail.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
-    <ClCompile Include="Audio.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-	<ClCompile Include="blood.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Enemy\enemy_boss_pattern.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
 	</ClCompile>
-	<ClCompile Include="slime_goo.cpp">
-	  <Filter>소스 파일\Game</Filter>
+	<ClCompile Include="Game\Enemy\enemy_death_effects.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
 	</ClCompile>
-    <ClCompile Include="title_scene.cpp">
+	<ClCompile Include="Game\Enemy\enemy_spatial.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
+	</ClCompile>
+	<ClCompile Include="Game\Enemy\enemy_encounter.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
+	</ClCompile>
+	<ClCompile Include="Game\Enemy\enemy_combat.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
+	</ClCompile>
+	<ClCompile Include="Game\Enemy\enemy_renderer.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
+	</ClCompile>
+	<ClCompile Include="Game\Enemy\enemy_collision.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
+	</ClCompile>
+	<ClCompile Include="Game\Enemy\monster_data.cpp">
+	  <Filter>소스 파일\Game\Enemy</Filter>
+	</ClCompile>
+    <ClCompile Include="Engine\Graphics\camera.cpp">
+      <Filter>소스 파일\Engine\Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Effects\chain_lightning.cpp">
+      <Filter>소스 파일\Game\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Effects\time_stop_effect.cpp">
+      <Filter>소스 파일\Game\Effects</Filter>
+    </ClCompile>
+	<ClCompile Include="Game\Items\game_items.cpp">
+	  <Filter>소스 파일\Game\Items</Filter>
+	</ClCompile>
+    <ClCompile Include="Engine\Core\collision.cpp">
+      <Filter>소스 파일\Engine\Core</Filter>
+    </ClCompile>
+	<ClCompile Include="Engine\Core\file_utils.cpp">
+	  <Filter>소스 파일\Engine\Core</Filter>
+	</ClCompile>
+	<ClCompile Include="Engine\Core\math_utils.cpp">
+	  <Filter>소스 파일\Engine\Core</Filter>
+	</ClCompile>
+	<ClCompile Include="Engine\Core\random_utils.cpp">
+	  <Filter>소스 파일\Engine\Core</Filter>
+	</ClCompile>
+    <ClCompile Include="Game\Combat\projectile.cpp">
+      <Filter>소스 파일\Game\Combat</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene\scene_system.cpp">
       <Filter>소스 파일\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="ingame_scene.cpp">
+    <ClCompile Include="Engine\Audio\Audio.cpp">
+      <Filter>소스 파일\Engine\Audio</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Audio\bgm.cpp">
+      <Filter>소스 파일\Engine\Audio</Filter>
+    </ClCompile>
+	<ClCompile Include="Game\Effects\slime_goo.cpp">
+	  <Filter>소스 파일\Game\Effects</Filter>
+	</ClCompile>
+	<ClCompile Include="Game\Effects\trail.cpp">
+	  <Filter>소스 파일\Game\Effects</Filter>
+	</ClCompile>
+    <ClCompile Include="Scene\title_scene.cpp">
       <Filter>소스 파일\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="clear_scene.cpp">
+    <ClCompile Include="Scene\ingame_scene.cpp">
       <Filter>소스 파일\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="button.cpp">
+    <ClCompile Include="Scene\ending_scenes.cpp">
+      <Filter>소스 파일\Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="UI\button.cpp">
       <Filter>소스 파일\UI</Filter>
     </ClCompile>
-    <ClCompile Include="time_stop_effect.cpp">
-      <Filter>소스 파일\Game</Filter>
-    </ClCompile>
+	<ClCompile Include="UI\button_menu_controller.cpp">
+	  <Filter>소스 파일\UI</Filter>
+	</ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="debug_ostream.h">
-      <Filter>헤더 파일</Filter>
+    <ClInclude Include="Engine\Core\debug_ostream.h">
+      <Filter>헤더 파일\Engine\Core</Filter>
     </ClInclude>
-    <ClInclude Include="config.h">
-      <Filter>헤더 파일</Filter>
+    <ClInclude Include="Engine\Core\config.h">
+      <Filter>헤더 파일\Engine\Core</Filter>
     </ClInclude>
-    <ClInclude Include="direct3d.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="shader.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="polygon.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="procedural_map.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
-    <ClInclude Include="WICTextureLoader11.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="texture.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="sprite.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="sprite_instanced.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="sprite_lighting.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="application.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="system_timer.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="debug_text.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="mouse.h">
-      <Filter>헤더 파일\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="input_keyboard.h">
-      <Filter>헤더 파일\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="input_mouse.h">
-      <Filter>헤더 파일\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="input_xinput.h">
-      <Filter>헤더 파일\Input</Filter>
-    </ClInclude>
-	<ClInclude Include="interactable.h">
-	  <Filter>헤더 파일\Game</Filter>
+	<ClInclude Include="Engine\Core\indexed_slot_pool.h">
+	  <Filter>헤더 파일\Engine\Core</Filter>
 	</ClInclude>
-    <ClInclude Include="keyboard.h">
-      <Filter>헤더 파일\Input</Filter>
+	<ClInclude Include="Engine\Core\file_utils.h">
+	  <Filter>헤더 파일\Engine\Core</Filter>
+	</ClInclude>
+	<ClInclude Include="Engine\Core\math_utils.h">
+	  <Filter>헤더 파일\Engine\Core</Filter>
+	</ClInclude>
+	<ClInclude Include="Engine\Core\random_utils.h">
+	  <Filter>헤더 파일\Engine\Core</Filter>
+	</ClInclude>
+    <ClInclude Include="Engine\Graphics\direct3d.h">
+      <Filter>헤더 파일\Engine\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="game_player.h">
-      <Filter>헤더 파일\Game</Filter>
+    <ClInclude Include="Engine\Graphics\shader.h">
+      <Filter>헤더 파일\Engine\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="game.h">
-      <Filter>헤더 파일\Game</Filter>
+    <ClInclude Include="Game\Map\procedural_map.h">
+      <Filter>헤더 파일\Game\Map</Filter>
     </ClInclude>
-	<ClInclude Include="game_data_manager.h">
-	  <Filter>헤더 파일\Game</Filter>
+	<ClInclude Include="Game\Map\procedural_map_internal.h">
+	  <Filter>헤더 파일\Game\Map</Filter>
 	</ClInclude>
-	<ClInclude Include="map_data.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="json_reader.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="player_level_game_data.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_data.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-    <ClInclude Include="game_bullet.h">
-      <Filter>헤더 파일\Game</Filter>
+    <ClInclude Include="ThirdParty\WICTextureLoader11.h">
+      <Filter>헤더 파일\ThirdParty</Filter>
     </ClInclude>
-	<ClInclude Include="boss_intro_presentation.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="ingame_hud.h">
-	  <Filter>헤더 파일\UI</Filter>
-	</ClInclude>
-	<ClInclude Include="ingame_menu_controller.h">
-	  <Filter>헤더 파일\UI</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_audio.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_fire_controller.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_inventory.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_multishot_scheduler.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_upgrade_state.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_fire_strategy.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_magic_blade.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_projectile_factory.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_shotgun.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_strategy_factory.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="weapon_strategy_registry.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-    <ClInclude Include="game_damage_text.h">
-      <Filter>헤더 파일\Game</Filter>
+    <ClInclude Include="Engine\Graphics\texture.h">
+      <Filter>헤더 파일\Engine\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="enemy.h">
-      <Filter>헤더 파일\Game</Filter>
+    <ClInclude Include="Engine\Graphics\sprite.h">
+      <Filter>헤더 파일\Engine\Graphics</Filter>
     </ClInclude>
-	<ClInclude Include="enemy_attack_pattern.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-    <ClInclude Include="effect.h">
-      <Filter>헤더 파일\Game</Filter>
+    <ClInclude Include="Engine\Graphics\sprite_region.h">
+      <Filter>헤더 파일\Engine\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="game_effect.h">
-      <Filter>헤더 파일\Game</Filter>
+    <ClInclude Include="Engine\Graphics\sprite_instanced.h">
+      <Filter>헤더 파일\Engine\Graphics</Filter>
     </ClInclude>
-    <ClInclude Include="game_enemy.h">
-      <Filter>헤더 파일\Game</Filter>
+    <ClInclude Include="Engine\Graphics\sprite_lighting.h">
+      <Filter>헤더 파일\Engine\Graphics</Filter>
     </ClInclude>
-	<ClInclude Include="monster_data.h">
-	  <Filter>헤더 파일\Game</Filter>
+    <ClInclude Include="Engine\Core\application.h">
+      <Filter>헤더 파일\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\system_timer.h">
+      <Filter>헤더 파일\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\bitmap_text.h">
+      <Filter>헤더 파일\Engine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Input\mouse.h">
+      <Filter>헤더 파일\Engine\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Input\input_keyboard.h">
+      <Filter>헤더 파일\Engine\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Input\input_mouse.h">
+      <Filter>헤더 파일\Engine\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Input\input_xinput.h">
+      <Filter>헤더 파일\Engine\Input</Filter>
+    </ClInclude>
+	<ClInclude Include="Game\Items\interactable.h">
+	  <Filter>헤더 파일\Game\Items</Filter>
 	</ClInclude>
-	<ClInclude Include="game_experience_gem.h">
-	  <Filter>헤더 파일\Game</Filter>
+    <ClInclude Include="Engine\Input\keyboard.h">
+      <Filter>헤더 파일\Engine\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Player\game_player.h">
+      <Filter>헤더 파일\Game\Player</Filter>
+    </ClInclude>
+	<ClInclude Include="Game\Player\game_data_manager.h">
+	  <Filter>헤더 파일\Game\Player</Filter>
 	</ClInclude>
-	<ClInclude Include="game_healing_item.h">
-	  <Filter>헤더 파일\Game</Filter>
+	<ClInclude Include="Game\Map\map_data.h">
+	  <Filter>헤더 파일\Game\Map</Filter>
 	</ClInclude>
-	<ClInclude Include="game_over_scene.h">
+	<ClInclude Include="Engine\Core\json_reader.h">
+	  <Filter>헤더 파일\Engine\Core</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Player\player_level_game_data.h">
+	  <Filter>헤더 파일\Game\Player</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Weapon\weapon_data.h">
+	  <Filter>헤더 파일\Game\Weapon</Filter>
+	</ClInclude>
+    <ClInclude Include="Game\Combat\game_bullet.h">
+      <Filter>헤더 파일\Game\Combat</Filter>
+    </ClInclude>
+	<ClInclude Include="Scene\boss_intro_presentation.h">
 	  <Filter>헤더 파일\Scene</Filter>
 	</ClInclude>
-    <ClInclude Include="camera.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
-    <ClInclude Include="chain_lightning.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
-	<ClInclude Include="chest.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-	<ClInclude Include="round_portal.h">
-	  <Filter>헤더 파일\Game</Filter>
-	</ClInclude>
-    <ClInclude Include="collision.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
-    <ClInclude Include="projectile.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
-    <ClInclude Include="singleton.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="scene.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
-    <ClInclude Include="scene_manager.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
-	<ClInclude Include="scene_factory.h">
+	<ClInclude Include="Scene\ingame_combat_presentation.h">
 	  <Filter>헤더 파일\Scene</Filter>
 	</ClInclude>
-    <ClInclude Include="trail.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
-    <ClInclude Include="Audio.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-	<ClInclude Include="blood.h">
-	  <Filter>헤더 파일\Game</Filter>
+	<ClInclude Include="UI\panel_draw.h">
+	  <Filter>헤더 파일\UI</Filter>
 	</ClInclude>
-	<ClInclude Include="slime_goo.h">
-	  <Filter>헤더 파일\Game</Filter>
+	<ClInclude Include="UI\ingame_hud.h">
+	  <Filter>헤더 파일\UI</Filter>
 	</ClInclude>
-    <ClInclude Include="title_scene.h">
+	<ClInclude Include="UI\ingame_menu_controller.h">
+	  <Filter>헤더 파일\UI</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Weapon\weapon_audio.h">
+	  <Filter>헤더 파일\Game\Weapon</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Weapon\weapon_fire_controller.h">
+	  <Filter>헤더 파일\Game\Weapon</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Weapon\weapon_inventory.h">
+	  <Filter>헤더 파일\Game\Weapon</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Weapon\weapon_multishot_scheduler.h">
+	  <Filter>헤더 파일\Game\Weapon</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Weapon\weapon_upgrade_state.h">
+	  <Filter>헤더 파일\Game\Weapon</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Weapon\weapon_fire_context.h">
+	  <Filter>헤더 파일\Game\Weapon</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Weapon\weapon_magic_blade.h">
+	  <Filter>헤더 파일\Game\Weapon</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Weapon\weapon_projectile_factory.h">
+	  <Filter>헤더 파일\Game\Weapon</Filter>
+	</ClInclude>
+    <ClInclude Include="Game\Effects\game_damage_text.h">
+      <Filter>헤더 파일\Game\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Enemy\enemy.h">
+      <Filter>헤더 파일\Game\Enemy</Filter>
+    </ClInclude>
+	<ClInclude Include="Game\Enemy\enemy_attack_pattern.h">
+	  <Filter>헤더 파일\Game\Enemy</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Enemy\enemy_attack_pattern_internal.h">
+	  <Filter>헤더 파일\Game\Enemy</Filter>
+	</ClInclude>
+    <ClInclude Include="Game\Effects\effect.h">
+      <Filter>헤더 파일\Game\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Effects\game_effect.h">
+      <Filter>헤더 파일\Game\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Enemy\game_enemy.h">
+      <Filter>헤더 파일\Game\Enemy</Filter>
+    </ClInclude>
+	<ClInclude Include="Game\Enemy\game_enemy_internal.h">
+	  <Filter>헤더 파일\Game\Enemy</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Enemy\monster_type.h">
+	  <Filter>헤더 파일\Game\Enemy</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Enemy\monster_data.h">
+	  <Filter>헤더 파일\Game\Enemy</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Items\game_experience_gem.h">
+	  <Filter>헤더 파일\Game\Items</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Items\game_healing_item.h">
+	  <Filter>헤더 파일\Game\Items</Filter>
+	</ClInclude>
+    <ClInclude Include="Engine\Graphics\camera.h">
+      <Filter>헤더 파일\Engine\Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Effects\chain_lightning.h">
+      <Filter>헤더 파일\Game\Effects</Filter>
+    </ClInclude>
+	<ClInclude Include="Game\Items\chest.h">
+	  <Filter>헤더 파일\Game\Items</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Items\round_portal.h">
+	  <Filter>헤더 파일\Game\Items</Filter>
+	</ClInclude>
+    <ClInclude Include="Engine\Core\collision.h">
+      <Filter>헤더 파일\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Game\Combat\projectile.h">
+      <Filter>헤더 파일\Game\Combat</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Core\singleton.h">
+      <Filter>헤더 파일\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\scene.h">
       <Filter>헤더 파일\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="ingame_scene.h">
+    <ClInclude Include="Scene\scene_manager.h">
       <Filter>헤더 파일\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="clear_scene.h">
+    <ClInclude Include="Game\Effects\trail.h">
+      <Filter>헤더 파일\Game\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Audio\Audio.h">
+      <Filter>헤더 파일\Engine\Audio</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Audio\bgm.h">
+      <Filter>헤더 파일\Engine\Audio</Filter>
+    </ClInclude>
+	<ClInclude Include="Game\Effects\blood.h">
+	  <Filter>헤더 파일\Game\Effects</Filter>
+	</ClInclude>
+	<ClInclude Include="Game\Effects\slime_goo.h">
+	  <Filter>헤더 파일\Game\Effects</Filter>
+	</ClInclude>
+    <ClInclude Include="Scene\title_scene.h">
       <Filter>헤더 파일\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="button.h">
+    <ClInclude Include="Scene\ingame_scene.h">
+      <Filter>헤더 파일\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene\ending_scene.h">
+      <Filter>헤더 파일\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="UI\button.h">
       <Filter>헤더 파일\UI</Filter>
     </ClInclude>
-    <ClInclude Include="time_stop_effect.h">
-      <Filter>헤더 파일\Game</Filter>
+	<ClInclude Include="Engine\Graphics\render_state_utils.h">
+	  <Filter>헤더 파일\Engine\Graphics</Filter>
+	</ClInclude>
+	<ClInclude Include="UI\button_menu_controller.h">
+	  <Filter>헤더 파일\UI</Filter>
+	</ClInclude>
+    <ClInclude Include="Game\Effects\time_stop_effect.h">
+      <Filter>헤더 파일\Game\Effects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -474,6 +567,12 @@
     <FxCompile Include="shader_pixel_instanced_2d.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
+    <FxCompile Include="shader_vertex_cut_2d.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
+    <FxCompile Include="shader_pixel_cut_2d.hlsl">
+      <Filter>Shader</Filter>
+    </FxCompile>
     <FxCompile Include="shader_pixel_lightning.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
@@ -483,5 +582,48 @@
     <FxCompile Include="shader_pixel_time_stop.hlsl">
       <Filter>Shader</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Constants\player_constants.h">
+      <Filter>헤더 파일\Constants</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants\enemy_pattern_constants.h">
+      <Filter>헤더 파일\Constants</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants\enemy_constants.h">
+      <Filter>헤더 파일\Constants</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants\map_constants.h">
+      <Filter>헤더 파일\Constants</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants\weapon_constants.h">
+      <Filter>헤더 파일\Constants</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants\item_constants.h">
+      <Filter>헤더 파일\Constants</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants\hud_constants.h">
+      <Filter>헤더 파일\Constants</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants\menu_constants.h">
+      <Filter>헤더 파일\Constants</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants\presentation_constants.h">
+      <Filter>헤더 파일\Constants</Filter>
+    </ClInclude>
+    <ClInclude Include="Constants\scene_constants.h">
+      <Filter>헤더 파일\Constants</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="game.rc">
+      <Filter>리소스 파일</Filter>
+    </ResourceCompile>
+    <Image Include="Resources\game.ico">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <ClInclude Include="resource.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

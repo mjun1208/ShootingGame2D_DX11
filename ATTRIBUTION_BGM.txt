@@ -1,0 +1,19 @@
+# Dungeon Survivor BGM Sources
+
+The soundtrack uses free tracks from OpenGameArt. Credits are retained here
+for provenance, license compliance, and appreciation.
+
+| Game section | Local file | Track / creator | Source | License |
+| --- | --- | --- | --- | --- |
+| Title | `title_ominous.wav` | Opening Theme [Action/Suspense] / nene | https://opengameart.org/content/opening-theme-actionsuspense | CC0 |
+| Stage 1 - Forest | `stage1_forest.wav` | Action Fantasy Looped - Felicitous Forest / Tomasz Kucza (Magnesus) | https://opengameart.org/content/action-fantasy-looped-felicitous-forest | CC-BY 4.0; credit: Tomasz Kucza / magory.net |
+| Stage 2 - Dungeon 1 | `stage2_dungeon1.wav` | Spooky Action Loop "Hallow Quest" (16-bit) / Zane Little Music | https://opengameart.org/content/spooky-action-loop-hallow-quest | CC0 |
+| Stage 2 - Dungeon 2 | `stage2_dungeon2.wav` | Boss Battle #2 [Symphonic Metal] / nene | https://opengameart.org/content/boss-battle-2-symphonic-metal | CC0 |
+
+All local files come from the creators' WAV releases and are renamed to match
+their in-game roles. `stage2_dungeon1.wav` preserves the original channel and
+sample-rate layout while converting 32-bit float to engine-friendly 16-bit PCM.
+`stage2_dungeon2.wav` comes
+from the archive's file named `opening`:
+the source page notes that the opening and loop filenames inside the archive
+are reversed, making that file the actual looping segment.
