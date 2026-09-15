@@ -832,6 +832,7 @@ namespace GamePlayer
 			    (hit->BodyA.Layer == CollisionLayer::Player && hit->BodyB.Layer == CollisionLayer::Enemy);
 			if (enemy_hit_player)
 			{
+				// 접근 데미지
 				ApplyDamage(PlayerConstants::Stats::ContactDamage);
 				return;
 			}

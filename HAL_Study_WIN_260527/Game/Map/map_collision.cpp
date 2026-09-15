@@ -42,6 +42,7 @@ bool ProceduralMap_IsCircleWalkable(const XMFLOAT2& position, float radius)
 	return true;
 }
 
+// 선분을 12로 나눠서 각각 갈 수 있는지 원 충돌
 bool ProceduralMap_IsSegmentWalkable(const XMFLOAT2& start, const XMFLOAT2& end, float radius)
 {
 	const float distance = Distance(start, end);
@@ -58,6 +59,8 @@ bool ProceduralMap_IsSegmentWalkable(const XMFLOAT2& start, const XMFLOAT2& end,
 	return true;
 }
 
+// 12개론 나누걸 어디까지 갈 수 있는지 끝 지점 구하는거
+// 현재 돌진, 레이저에 사용중
 XMFLOAT2 ProceduralMap_TraceWalkableSegment(const XMFLOAT2& start, const XMFLOAT2& direction, float maximum_distance,
                                             float radius, float trace_step)
 {
@@ -131,6 +134,7 @@ namespace ProceduralMapInternal
 		return DistanceSquared(position, { closest_x, closest_y }) < radius * radius;
 	}
 
+	// 방 입장 방벽 충돌
 	bool IsEncounterBarrierClear(const XMFLOAT2& position, float radius)
 	{
 		for (const EncounterBarrier& barrier : g_EncounterBarriers)

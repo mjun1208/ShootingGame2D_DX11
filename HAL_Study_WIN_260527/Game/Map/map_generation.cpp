@@ -252,6 +252,7 @@ int ProceduralMap_GetRoomIndexAt(const XMFLOAT2& world_position)
 	return cell.Kind == CellKind::Room ? cell.RoomIndex : -1;
 }
 
+// 룸 정보 구하기
 const ProceduralMapRoom* ProceduralMap_GetRoom(int room_index)
 {
 	if (room_index < 0 || room_index >= static_cast<int>(g_Rooms.size()))
@@ -261,6 +262,7 @@ const ProceduralMapRoom* ProceduralMap_GetRoom(int room_index)
 	return &g_Rooms[room_index].Info;
 }
 
+// 몬스터 스폰 위치 구하기
 bool ProceduralMap_TryGetRoomSpawnPosition(int room_index, const XMFLOAT2& avoid_position, float minimum_distance,
                                            float clearance_radius, XMFLOAT2& out_position)
 {

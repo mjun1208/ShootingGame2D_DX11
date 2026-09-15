@@ -31,6 +31,7 @@ struct ProceduralMapOverviewLayout
 	float FramePadding{ 0.0f };
 };
 
+// 함수 포인터
 using ProceduralMapRoomVisibilityPredicate = bool (*)(int room_index);
 
 bool ProceduralMap_Initialize();
